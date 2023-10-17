@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:ObjRenderer"
         mc:Ignorable="d"
         
-        Title="ObjRenderer" Height="1080" Width="1920" WindowState="Maximized" Loaded="WindowLoaded" MouseWheel="WindowMouseWheel" MouseMove="WindowMouseMove" MouseDown="WindowMouseDown">
+        Title="ObjRenderer" Height="1080" Width="1920" WindowState="Maximized" Loaded="WindowLoaded" MouseWheel="WindowMouseWheel" MouseMove="WindowMouseMove" MouseDown="WindowMouseDown" KeyDown="WindowKeyDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -26,8 +26,16 @@
         </DockPanel>
 
         <StackPanel Orientation="Horizontal" Grid.Row="1">
-            <Label Content="BlaBla" />
-            <!--<Label Content="{Binding Path=Alpha}" /> -->
+            <Label Content="α:" />
+            <Label Content="{Binding Path=Camera.Alpha}" ContentStringFormat="{}{0:F3}"/>
+            <Label Content="β:" />
+            <Label Content="{Binding Path=Camera.Beta}" ContentStringFormat="{}{0:F3}"/>
+            <Label Content="R:" />
+            <Label Content="{Binding Path=Camera.R}"/>
+            <Label Content="X:" />
+            <Label Content="{Binding Path=Camera.X}" />
+            <Label Content="Y:" />
+            <Label Content="{Binding Path=Camera.Y}" />
         </StackPanel>
 
     </Grid>

@@ -12,9 +12,14 @@ namespace ObjRenderer
     {
         private const string path = @"./Data/model.obj";
 
-        private const float nearPlaneDistance = 10.0f;
-        private const float fatPlaneDistance = 1000.0f;
+        private const float nearPlaneDistance = 100.0f;
+        private const float farPlaneDistance = 1000.0f;
 
+        private const float cameraAlpha = (float)Math.PI / 2;
+        private const float cameraBeta = 0.0f;
+        private const float cameraDistanceZ = 100.0f;
+        private const float cameraDistanceX = 0.0f;
+        private const float cameraDistanceY = 0.0f;
 
         public Model Model { get; set; }
         public Camera Camera { get; set; }
@@ -31,7 +36,7 @@ namespace ObjRenderer
 
         public ObjRendererViewModel(Image image, int pixelWidth, int pixelHeight)
         {
-            Camera = new((float)Math.PI / 2, 0, 400);
+            Camera = new(cameraAlpha, cameraBeta, cameraDistanceZ, cameraDistanceX, cameraDistanceY);
             Camera.PropertyChanged += CameraChanged;
 
             Image = image;
@@ -49,10 +54,18 @@ namespace ObjRenderer
         {
             Model model = Parse(path);
 
-            var worldMatrix = GetWorldMatrix(new(-model.Size.XCenter, -model.Size.YCenter, -model.Size.ZCenter), Vector3.UnitZ, new(0, 1, 0));
-            var scaleMatrix = GetScaleMatrix(100 / model.Size.ZSize);
+            Vector3 position = new(-model.Size.XCenter, -model.Size.YCenter, -model.Size.ZCenter);
+            Vector3 forward = -Vector3.UnitZ;
+            Vector3 up = Vector3.UnitY;
 
-            model.Vertices = model.Vertices.ApplyTransform(worldMatrix).ApplyTransform(scaleMatrix).ToList();
+            float scale = cameraDistanceZ / Math.Max(model.Size.XSize, Math.Max(model.Size.ZSize, model.Size.YSize));
+
+            var worldMatrix = GetWorldMatrix(position, forward, up);
+            var scaleMatrix = GetScaleMatrix(scale);
+            
+            var matrix = worldMatrix * scaleMatrix;
+
+            model.Vertices = model.Vertices.ApplyTransform(matrix).ToList();
 
             Model = model;
 
@@ -61,15 +74,13 @@ namespace ObjRenderer
 
         public void RenderModel()
         {
-            var translationMatrix = Matrix4x4.CreateTranslation(0, 0, 0);
-            //var rotationMatrix = Matrix4x4.CreateRotationX(Camera.Alpha) * Matrix4x4.CreateRotationY(Camera.Beta);
-            var viewMatrix = GetViewMatrix(Camera.Eye, Vector3.Zero, Vector3.UnitY);
+            var viewMatrix = GetViewMatrix(Camera.Eye, Camera.Target, Vector3.UnitY);
 
-            var projectionMatrix = GetProjectionMatrix(45, pixelWidth / pixelHeight, nearPlaneDistance, fatPlaneDistance);
+            var projectionMatrix = GetProjectionMatrix(45, pixelWidth / pixelHeight, nearPlaneDistance, farPlaneDistance);
 
             var viewportMatrix = GetViewPortMatrix(pixelWidth, pixelHeight);
 
-            var matrix = translationMatrix * viewMatrix * projectionMatrix;
+            var matrix = viewMatrix * projectionMatrix;
 
             VerticesToDraw = Model.Vertices
                 .ApplyTransform(matrix)

@@ -19,8 +19,11 @@ namespace ObjRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const float _smoothness = 0.01f;
-        private const float _rSmoothness = 0.05f;
+        private const float mouseButtonSmoothness = 0.01f;
+        private const float mouseWheelSmoothness = 0.01f;
+        private const float keyDistanceChange = 1.0f;
+        private const float keyBetaChange = (float)Math.PI / 12;
+        private const float keyAlphaChange = (float)Math.PI /36;
 
         private ObjRendererViewModel viewModel;
 
@@ -42,7 +45,39 @@ namespace ObjRenderer
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
         {
-
+            switch (e.Key)
+            {
+                case Key.W:
+                    viewModel.Camera.Y += keyDistanceChange;
+                    break;
+                case Key.S:
+                    viewModel.Camera.Y -= keyDistanceChange;
+                    break;
+                case Key.D:
+                    viewModel.Camera.X += keyDistanceChange;
+                    break;
+                case Key.A:
+                    viewModel.Camera.X -= keyDistanceChange;
+                    break;
+                case Key.Z:
+                    viewModel.Camera.R += keyDistanceChange;
+                    break;
+                case Key.X:
+                    viewModel.Camera.R -= keyDistanceChange;
+                    break;
+                case Key.Q:
+                    viewModel.Camera.Beta += keyBetaChange;
+                    break;
+                case Key.E:
+                    viewModel.Camera.Beta -= keyBetaChange;
+                    break;
+                case Key.F:
+                    viewModel.Camera.Alpha += keyAlphaChange;
+                    break;
+                case Key.R:
+                    viewModel.Camera.Alpha -= keyAlphaChange;
+                    break;
+            }
         }
 
         private void WindowMouseDown(object sender, MouseButtonEventArgs e)
@@ -63,8 +98,8 @@ namespace ObjRenderer
 
                 if (Math.Abs(deltaX) > 0.1 || Math.Abs(deltaY) > 0.1)
                 {
-                    viewModel.Camera.Alpha += (float)deltaY * _smoothness;
-                    viewModel.Camera.Beta += (float)deltaX * _smoothness;
+                    viewModel.Camera.Alpha += (float)deltaY * mouseButtonSmoothness;
+                    viewModel.Camera.Beta += (float)deltaX * mouseButtonSmoothness;
                 }
 
                 lastMousePosition = currentMousePosition;
@@ -73,7 +108,7 @@ namespace ObjRenderer
 
         private void WindowMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            viewModel.Camera.R -= e.Delta * _rSmoothness;
+            viewModel.Camera.R -= e.Delta * mouseWheelSmoothness;
         }
 
         internal void DrawModel(object? sender, EventArgs e)
