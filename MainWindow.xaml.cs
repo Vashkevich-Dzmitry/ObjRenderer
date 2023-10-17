@@ -19,11 +19,12 @@ namespace ObjRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const float mouseButtonSmoothness = 0.01f;
+        private const float mouseButtonSmoothness = 0.005f;
         private const float mouseWheelSmoothness = 0.01f;
         private const float keyDistanceChange = 1.0f;
         private const float keyBetaChange = (float)Math.PI / 12;
         private const float keyAlphaChange = (float)Math.PI /36;
+        private const float controlScaleValue = 5.0f;
 
         private ObjRendererViewModel viewModel;
 
@@ -93,13 +94,15 @@ namespace ObjRenderer
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 Point currentMousePosition = e.GetPosition(this);
-                double deltaX = currentMousePosition.X - lastMousePosition.X;
-                double deltaY = currentMousePosition.Y - lastMousePosition.Y;
+                float deltaX = (float)(currentMousePosition.X - lastMousePosition.X);
+                float deltaY = (float)(currentMousePosition.Y - lastMousePosition.Y);
 
-                if (Math.Abs(deltaX) > 0.1 || Math.Abs(deltaY) > 0.1)
+                if (Math.Abs(deltaX) > 0.1f || Math.Abs(deltaY) > 0.1f)
                 {
-                    viewModel.Camera.Alpha += (float)deltaY * mouseButtonSmoothness;
-                    viewModel.Camera.Beta += (float)deltaX * mouseButtonSmoothness;
+                    bool isControlPressed = Keyboard.Modifiers == ModifierKeys.Control;
+
+                    viewModel.Camera.Alpha += isControlPressed ? deltaY * mouseButtonSmoothness * controlScaleValue : deltaY * mouseButtonSmoothness;
+                    viewModel.Camera.Beta += isControlPressed ? deltaX * mouseButtonSmoothness * controlScaleValue : deltaX * mouseButtonSmoothness;
                 }
 
                 lastMousePosition = currentMousePosition;
@@ -108,7 +111,9 @@ namespace ObjRenderer
 
         private void WindowMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            viewModel.Camera.R -= e.Delta * mouseWheelSmoothness;
+            bool isControlPressed = Keyboard.Modifiers == ModifierKeys.Control;
+            float delta = e.Delta * mouseWheelSmoothness;
+            viewModel.Camera.R -= isControlPressed ? delta * controlScaleValue : delta;
         }
 
         internal void DrawModel(object? sender, EventArgs e)

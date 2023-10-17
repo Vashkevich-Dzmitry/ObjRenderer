@@ -5,16 +5,13 @@ namespace ObjRenderer.Helpers
 {
     public static class CoordinateTransformer
     {
-        public static IEnumerable<Vector4> ApplyTransform(this IEnumerable<Vector4> vectors, Matrix4x4 transformMatrix)
+        public static IEnumerable<Vector4> ApplyTransform(this IEnumerable<Vector4> vectors, Matrix4x4 transformationMatrix)
         {
-            return vectors.Select(v => Vector4.Transform(v, transformMatrix));
+            return vectors.Select(v => Vector4.Transform(v, transformationMatrix));
         }
 
         public static IEnumerable<Vector4> DivideByW(this IEnumerable<Vector4> vectors)
         {
-            var z = vectors.Where(v => v.Z > 10.0f && v.Z < 500).Count();
-            var mz = vectors.Where(v => v.Z > 10.0f).Count();
-            var mw = vectors.Where(v => v.W >= 0).Count();
             return vectors.Select(v => new Vector4(v.X / v.W, v.Y / v.W, v.Z / v.W, 1));
         }
 
@@ -35,11 +32,13 @@ namespace ObjRenderer.Helpers
             return Matrix4x4.CreateWorld(position, forward, up ?? Vector3.UnitY);
         }
 
+        /// Scale matrix
         public static Matrix4x4 GetScaleMatrix(float scaleX, float scaleY, float scaleZ)
         {
             return Matrix4x4.CreateScale(scaleX, scaleY, scaleZ);
         }
 
+        /// Scale matrix
         public static Matrix4x4 GetScaleMatrix(float scale)
         {
             return Matrix4x4.CreateScale(scale, scale, scale);
@@ -53,8 +52,7 @@ namespace ObjRenderer.Helpers
             return Matrix4x4.CreateLookAt(eye, target, newUp);
         }
 
-        /// <param name="fieldOfView"> in degrees</param>
-        /// <param name="aspectRatio"> Width / height</param>
+        /// Projection Matrix
         public static Matrix4x4 GetProjectionMatrix(float fieldOfView, float aspectRatio, float nearPlaneDistance,
             float farPlaneDistance)
         {
