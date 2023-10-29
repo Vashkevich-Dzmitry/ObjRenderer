@@ -7,7 +7,7 @@ namespace ObjRenderer.Models
     {
         private float alpha;
         private float beta;
-        private float r;
+        private float z;
         private float x;
         private float y;
 
@@ -15,7 +15,7 @@ namespace ObjRenderer.Models
         {
             this.alpha = alpha;
             this.beta = beta;
-            this.r = r;
+            this.z = r;
             this.x = x;
             this.y = y;
         }
@@ -24,9 +24,9 @@ namespace ObjRenderer.Models
         {
             get
             {
-                double x = R * Math.Sin(Alpha) * Math.Sin(Beta) + X;
-                double y = R * Math.Cos(Alpha) + Y;
-                double z = R * Math.Sin(Alpha) * Math.Cos(Beta);
+                double x = Z * Math.Sin(Alpha) * Math.Sin(Beta) + X;
+                double y = Z * Math.Cos(Alpha) + Y;
+                double z = Z * Math.Sin(Alpha) * Math.Cos(Beta);
 
                 return new Vector3((float)x, (float)y, (float)z);
             }
@@ -40,15 +40,15 @@ namespace ObjRenderer.Models
             }
         }
 
-        public float R
+        public float Z
         {
-            get { return r; }
+            get { return z; }
             set
             {
                 if (value > 0 && value < 1000)
                 {
-                    r = value;
-                    OnPropertyChanged(nameof(R));
+                    z = value;
+                    OnPropertyChanged(nameof(Z));
                 }
             }
         }

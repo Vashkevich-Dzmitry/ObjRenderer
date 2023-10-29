@@ -61,10 +61,10 @@ namespace ObjRenderer
                     viewModel.Camera.X -= keyDistanceChange;
                     break;
                 case Key.Z:
-                    viewModel.Camera.R += keyDistanceChange;
+                    viewModel.Camera.Z += keyDistanceChange;
                     break;
                 case Key.X:
-                    viewModel.Camera.R -= keyDistanceChange;
+                    viewModel.Camera.Z -= keyDistanceChange;
                     break;
                 case Key.Q:
                     viewModel.Camera.Beta += keyBetaChange;
@@ -113,7 +113,7 @@ namespace ObjRenderer
         {
             bool isControlPressed = Keyboard.Modifiers == ModifierKeys.Control;
             float delta = e.Delta * mouseWheelSmoothness;
-            viewModel.Camera.R -= isControlPressed ? delta * controlScaleValue : delta;
+            viewModel.Camera.Z -= isControlPressed ? delta * controlScaleValue : delta;
         }
 
         internal void DrawModel(object? sender, EventArgs e)
