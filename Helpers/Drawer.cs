@@ -1,34 +1,169 @@
 ﻿using ObjRenderer.Models;
 using System.Drawing;
+using System.Linq;
 using System.Numerics;
+using System.Windows.Shapes;
 
 namespace ObjRenderer.Helpers
 {
     public static class Drawer
     {
-        public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, int width, int height, System.Drawing.Color color)
+        public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, List<Vector3> normals, int width, int height, Color color, Vector3 lightingVector)
         {
             Bitmap bitmap = new(width, height);
             bitmap.Source.Lock();
 
-            Parallel.ForEach(faces, (face, state, index) =>
+            Parallel.ForEach(faces, (face) =>
             {
-                var vertex = vertices.ElementAt(face[0].VertexIndex);
-                var previousPoint = to2DPoint(vertex);
-                for (var i = 1; i < face.Count; ++i)
-                {
-                    int index1 = face[i].VertexIndex;
-                    var vertex1 = vertices.ElementAt(index1);
-                    var currentPoint = to2DPoint(vertex1);
-                    DrawLineIfFits(bitmap, previousPoint, currentPoint, color);
-                    previousPoint = currentPoint;
-                }
+                Color faceColor = CalculateColor(lightingVector, face, normals, color);
+
+                List<Vector4> points = new(face.Select(f => vertices.ElementAt(f.VertexIndex)));
+
+                Rasterize(bitmap, points, faceColor);
             });
 
             bitmap.Source.AddDirtyRect(new(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
             bitmap.Source.Unlock();
 
             return bitmap;
+        }
+
+        private static void Rasterize(Bitmap bitmap, List<Vector4> points, Color color)
+        {
+            points.OrderBy(p => p.Y);
+
+            float x1 = points[0].X;
+            float y1 = points[0].Y;
+            float z1 = points[0].Z;
+            float x2 = points[1].X;
+            float y2 = points[1].Y;
+            float z2 = points[1].Z;
+            float x3 = points[2].X;
+            float y3 = points[2].Y;
+            float z3 = points[2].Z;
+
+            float currentY = y1;
+
+            while (currentY < y2)
+            {
+                float targetX1 = Interpolate(currentY, x1, y1, x3, y3);
+                float targetX2 = Interpolate(currentY, x1, y1, x2, y2);
+                float targetZ1 = Interpolate(currentY, z1, y1, z3, y3);
+                float targetZ2 = Interpolate(currentY, z1, y1, z2, y2);
+
+                if (targetX1 > targetX2)
+                {
+                    targetX1 = targetX2;
+                    targetX2 = targetX1;
+                }
+
+                float currentX = targetX1;
+
+                while (currentX < targetX2)
+                {
+                    //float zVal = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
+                    //points.Add(new Point((int)Math.Floor(currentX), (int)Math.Ceiling(currentY), polygon.Depth, polygon.Color));
+                    currentX += 1.0f;
+                }
+
+                currentY += 1.0f;
+            }
+
+            currentY = y2;
+
+            while (currentY < y3)
+            {
+                float targetX1 = Interpolate(currentY, x1, y1, x3, y3);
+                float targetX2 = Interpolate(currentY, x2, y2, x3, y3);
+                float targetZ1 = Interpolate(currentY, z1, y1, z3, y3);
+                float targetZ2 = Interpolate(currentY, z2, y2, z3, y3);
+
+                if (targetX1 > targetX2)
+                {
+                    targetX1 = targetX2;
+                    targetX2 = targetX1;
+                }
+
+                float currentX = targetX1;
+
+                while (currentX < targetX2)
+                {
+                    float zVal = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
+                    points.Add(new Point((int)Math.Floor(currentX), (int)Math.Ceiling(currentY), polygon.Depth, polygon.Color));
+                    currentX += 1.0f;
+                }
+
+                currentY += 1.0f;
+            }
+
+            return points;
+        }
+
+        public static bool ZeroCheck(float v1, float v2)
+        {
+            return Math.Abs(v1 - v2) < 0.00000001;
+        }
+
+        public static float Interpolate(float targetY, float x1, float y1, float x2, float y2)
+        {
+            if (ZeroCheck(y1, y2))
+                return x1;
+            else
+                return (x1 - x2) / (y1 - y2) * (targetY - y1) + x1;
+        }
+
+        /// <summary>
+        /// Рассчитывает цвет полигона face, используя модель освещения Ламберта
+        /// </summary>
+        /// <param name="lightingVector"></param>
+        /// <param name="face"></param>
+        /// <param name="normals"></param>
+        /// <param name="baseColor"></param>
+        /// <returns>Цвет полигона</returns>
+        private static Color CalculateColor(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals, Color baseColor)
+        {
+            double coefficient = CalculateColorCoefficient(lightingVector, face, normals);
+
+            int red = (int)Math.Round(baseColor.R * coefficient);
+            int green = (int)Math.Round(baseColor.G * coefficient);
+            int blue = (int)Math.Round(baseColor.B * coefficient);
+
+            return Color.FromArgb(red, green, blue);
+        }
+
+        /// <summary>
+        /// Определяет долю базового цвета, необходимую для получения цвета вершины полигона
+        /// </summary>
+        /// <param name="lightingVector"></param>
+        /// <param name="normalVector"></param>
+        /// <returns>Доля базового цвета, необходимую для получения цвета вершины полигона</returns>
+        private static double GetColorCoefficientUsingLambertLightingModel(Vector3 lightingVector, Vector3 normalVector)
+        {
+            var normal = Vector3.Normalize(normalVector);
+            var lighting = Vector3.Normalize(lightingVector);
+
+            return Math.Max(Vector3.Dot(normal, lighting), 0);
+        }
+
+        /// <summary>
+        /// Определяет долю базового цвета, необходимую для получения цвета полигона
+        /// </summary>
+        /// <param name="lightingVector"></param>
+        /// <param name="face"></param>
+        /// <param name="normals"></param>
+        /// <returns>Цвет полигона</returns>
+        private static double CalculateColorCoefficient(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals)
+        {
+            double coefficient = 0;
+
+            foreach (var normal in face.Select(f => normals.ElementAt(f.VertexNormalIndex ?? 0)))
+            {
+                coefficient += GetColorCoefficientUsingLambertLightingModel(lightingVector, normal);
+            }
+
+            coefficient /= face.Count;
+
+            return coefficient;
         }
 
         private static void DrawLineIfFits(Bitmap bitmap, Point previousPoint, Point currentPoint, System.Drawing.Color color)

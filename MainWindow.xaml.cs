@@ -1,16 +1,9 @@
 ﻿using ObjRenderer.Helpers;
 using ObjRenderer.Models;
-using System.Text;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace ObjRenderer
 {
@@ -118,7 +111,7 @@ namespace ObjRenderer
 
         internal void DrawModel(object? sender, EventArgs e)
         {
-            Image.Source = Drawer.DrawBitmap(viewModel.FacesToDraw, viewModel.VerticesToDraw, viewModel.pixelWidth, viewModel.pixelHeight, System.Drawing.Color.DarkGreen).Source;
+            Image.Source = Drawer.DrawBitmap(viewModel.FacesToDraw, viewModel.VerticesToDraw, viewModel.pixelWidth, viewModel.pixelHeight, System.Drawing.Color.DarkGreen, Vector3.UnitZ).Source;
         }
     }
 }
