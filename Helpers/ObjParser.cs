@@ -27,47 +27,58 @@ namespace ObjRenderer.Helpers
             return model;
         }
 
-        private static int GetNormalizedVertexIndex(int index, int count)
-        {
-            return index > 0 ? --index : count - index;
-        }
-
         private static void ParseVertex(Model model, string[] parts)
         {
             model.Vertices.Add(
-                new Vector4(parts[1].ToFloat(),
+                new Vector4(
+                    parts[1].ToFloat(),
                     parts[2].ToFloat(),
                     parts[3].ToFloat(),
-                    parts.ElementAtOrDefault(4)?.ToNullableFloat() ?? 1.0f));
+                    parts.ElementAtOrDefault(4)?.ToFloat() ?? 1.0f));
         }
 
         private static void ParseVertexTexture(Model model, string[] parts)
         {
-            model.VertexTextures.Add(new Vector3(parts[1].ToFloat(),
-                parts[2].ToNullableFloat() ?? 0.0f,
-                parts.ElementAtOrDefault(3)?.ToNullableFloat() ?? 0.0f));
+            model.VertexTextures.Add(
+                new Vector3(
+                    parts[1].ToFloat(),
+                    parts.ElementAtOrDefault(2)?.ToFloat() ?? 0.0f,
+                    parts.ElementAtOrDefault(3)?.ToFloat() ?? 0.0f));
         }
 
         private static void ParseVertexNormal(Model model, string[] parts)
         {
+
             model.VertexNormals.Add(
-                new Vector3(parts[1].ToFloat(),
-                    parts[2].ToFloat(),
+                new Vector3(
+                    parts[1].ToFloat(),
+                    parts.ElementAtOrDefault(2)?.ToFloat() ?? 0.0f,
                     parts.ElementAtOrDefault(3)?.ToFloat() ?? 0.0f));
+
         }
 
         private static void ParseFace(Model model, string[] parts)
         {
             model.Faces.Add(
                 parts.Skip(1).Select(part =>
-                {
-                    var indices = part.Split('/');
-                    return new FaceDescription(
-                        GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
-                        indices.ElementAtOrDefault(1)?.ToNullableInt(),
-                        indices.ElementAtOrDefault(2)?.ToNullableInt());
-                }
-                ).ToArray());
+                    {
+                        var indices = part.Split('/');
+                        return new FaceDescription(
+                            GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToInt(), model.VertexTextures.Count),
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToInt(), model.VertexNormals.Count));
+                    }
+                    ).ToArray());
+        }
+
+        private static int GetNormalizedVertexIndex(int index, int count)
+        {
+            return index > 0 ? --index : count - index;
+        }
+
+        private static int? GetNormalizedVertexIndexOrDefault(int? index, int count)
+        {
+            return index.HasValue ? (index!.Value > 0 ? --index : count - index) : null;
         }
     }
 }
