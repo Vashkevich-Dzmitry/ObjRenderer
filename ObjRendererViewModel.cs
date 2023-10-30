@@ -12,8 +12,8 @@ namespace ObjRenderer
     {
         private const string path = @"./Data/model.obj";
 
-        private const float nearPlaneDistance = 100.0f;
-        private const float farPlaneDistance = 1000.0f;
+        private const float nearPlaneDistance = 200.0f;
+        private const float farPlaneDistance = 2000.0f;
 
         private const float cameraAlpha = (float)Math.PI / 2;
         private const float cameraBeta = 0.0f;
@@ -24,6 +24,8 @@ namespace ObjRenderer
         public Model Model { get; set; }
         public Camera Camera { get; set; }
         public Image Image { get; set; }
+
+        public Vector3 lightingVector { get; set; }
         public List<Vector4> VerticesToDraw { get; set; }
         public List<IList<FaceDescription>> FacesToDraw { get; set; }
 
@@ -38,6 +40,8 @@ namespace ObjRenderer
         {
             Camera = new(cameraAlpha, cameraBeta, cameraDistanceZ, cameraDistanceX, cameraDistanceY);
             Camera.PropertyChanged += CameraChanged;
+
+            lightingVector = -Vector3.One;
 
             Image = image;
 

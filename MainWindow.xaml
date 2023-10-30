@@ -31,7 +31,7 @@
             <Label Content="β:" />
             <Label Content="{Binding Path=Camera.Beta}" ContentStringFormat="{}{0:F3}"/>
             <Label Content="R:" />
-            <Label Content="{Binding Path=Camera.R}" ContentStringFormat="{}{0:F1}"/>
+            <Label Content="{Binding Path=Camera.Z}" ContentStringFormat="{}{0:F1}"/>
             <Label Content="X:" />
             <Label Content="{Binding Path=Camera.X}" />
             <Label Content="Y:" />

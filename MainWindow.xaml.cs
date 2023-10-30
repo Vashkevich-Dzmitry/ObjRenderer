@@ -111,7 +111,7 @@ namespace ObjRenderer
 
         internal void DrawModel(object? sender, EventArgs e)
         {
-            Image.Source = Drawer.DrawBitmap(viewModel.FacesToDraw, viewModel.VerticesToDraw, viewModel.pixelWidth, viewModel.pixelHeight, System.Drawing.Color.DarkGreen, Vector3.UnitZ).Source;
+            Image.Source = Drawer.DrawBitmap(viewModel.FacesToDraw, viewModel.VerticesToDraw, viewModel.Model.VertexNormals, viewModel.pixelWidth, viewModel.pixelHeight, System.Drawing.Color.DarkGreen, viewModel.lightingVector).Source;
         }
     }
 }

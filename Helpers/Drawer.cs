@@ -10,6 +10,8 @@ namespace ObjRenderer.Helpers
     {
         public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, List<Vector3> normals, int width, int height, Color color, Vector3 lightingVector)
         {
+            double[,] zBuffer = GetZBuffer(width, height);
+
             Bitmap bitmap = new(width, height);
             bitmap.Source.Lock();
 
@@ -19,7 +21,7 @@ namespace ObjRenderer.Helpers
 
                 List<Vector4> points = new(face.Select(f => vertices.ElementAt(f.VertexIndex)));
 
-                Rasterize(bitmap, points, faceColor);
+                Rasterize(bitmap, points, faceColor, zBuffer);
             });
 
             bitmap.Source.AddDirtyRect(new(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
@@ -28,80 +30,126 @@ namespace ObjRenderer.Helpers
             return bitmap;
         }
 
-        private static void Rasterize(Bitmap bitmap, List<Vector4> points, Color color)
+        private static void Rasterize(Bitmap bitmap, List<Vector4> points, Color color, double[,] zBuffer)
         {
-            points.OrderBy(p => p.Y);
+            int width = bitmap.PixelWidth;
+            int height = bitmap.PixelHeight;
 
-            float x1 = points[0].X;
-            float y1 = points[0].Y;
-            float z1 = points[0].Z;
-            float x2 = points[1].X;
-            float y2 = points[1].Y;
-            float z2 = points[1].Z;
-            float x3 = points[2].X;
-            float y3 = points[2].Y;
-            float z3 = points[2].Z;
+            List<Point> facePixels = CalculateFacePixels(points, zBuffer, width, height);
 
-            float currentY = y1;
-
-            while (currentY < y2)
+            foreach(var pixel in facePixels)
             {
-                float targetX1 = Interpolate(currentY, x1, y1, x3, y3);
+                bitmap.SetPixel(pixel.X, pixel.Y, color.R, color.G, color.B);
+            }
+        }
+
+        private static double[,] GetZBuffer(int width, int height)
+        {
+            double[,] result = new double[width, height];
+
+            for (int i = 0; i < width; i++)
+            {
+                for (int j = 0; j < height; j++)
+                {
+                    result[i, j] = double.MaxValue;
+                }
+            }
+
+            return result;
+        }
+
+        private static List<Point> CalculateFacePixels(List<Vector4> points, double[,] zBuffer, int width, int height)
+        {
+            List<Point> resultPixels = new();
+
+            points = points.OrderBy(p => p.Y).ToList();
+
+            float x0 = points[0].X;
+            float y0 = points[0].Y;
+            float z0 = points[0].Z;
+            float x1 = points[1].X;
+            float y1 = points[1].Y;
+            float z1 = points[1].Z;
+            float x2 = points[2].X;
+            float y2 = points[2].Y;
+            float z2 = points[2].Z;
+
+            float currentY = y0;
+
+            while (currentY <= y1)
+            {
+                float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
+                float targetX2 = Interpolate(currentY, x0, y0, x1, y1);
+                float targetZ1 = Interpolate(currentY, z0, y0, z2, y2);
+                float targetZ2 = Interpolate(currentY, z0, y0, z1, y1);
+
+                if (targetX1 > targetX2)
+                {
+                    (targetX1, targetX2) = (targetX2, targetX1);
+                }
+
+                float currentX = targetX1;
+
+                while (currentX <= targetX2)
+                {
+                    int x = (int)Math.Floor(currentX);
+                    int y = (int)Math.Ceiling(currentY);
+
+                    double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
+
+                    if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                    {
+                        resultPixels.Add(new(x, y));
+                        zBuffer[x, y] = zValue;
+                    }
+
+                    currentX += 1.0f;
+                }
+
+                currentY += 1.0f;
+            }
+
+            currentY = y1;
+
+            while (currentY <= y2) ///ToDo cycle in function
+            {
+                float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
                 float targetX2 = Interpolate(currentY, x1, y1, x2, y2);
-                float targetZ1 = Interpolate(currentY, z1, y1, z3, y3);
+                float targetZ1 = Interpolate(currentY, z0, y0, z2, y2);
                 float targetZ2 = Interpolate(currentY, z1, y1, z2, y2);
 
                 if (targetX1 > targetX2)
                 {
-                    targetX1 = targetX2;
-                    targetX2 = targetX1;
+                    (targetX1, targetX2) = (targetX2, targetX1);
                 }
 
                 float currentX = targetX1;
 
-                while (currentX < targetX2)
+                while (currentX <= targetX2)
                 {
-                    //float zVal = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
-                    //points.Add(new Point((int)Math.Floor(currentX), (int)Math.Ceiling(currentY), polygon.Depth, polygon.Color));
+                    int x = (int)Math.Floor(currentX);
+                    int y = (int)Math.Ceiling(currentY);
+
+                    double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
+
+                    if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                    {
+                        resultPixels.Add(new(x, y));
+                        zBuffer[x, y] = zValue;
+                    }
+
                     currentX += 1.0f;
                 }
 
                 currentY += 1.0f;
             }
 
-            currentY = y2;
-
-            while (currentY < y3)
-            {
-                float targetX1 = Interpolate(currentY, x1, y1, x3, y3);
-                float targetX2 = Interpolate(currentY, x2, y2, x3, y3);
-                float targetZ1 = Interpolate(currentY, z1, y1, z3, y3);
-                float targetZ2 = Interpolate(currentY, z2, y2, z3, y3);
-
-                if (targetX1 > targetX2)
-                {
-                    targetX1 = targetX2;
-                    targetX2 = targetX1;
-                }
-
-                float currentX = targetX1;
-
-                while (currentX < targetX2)
-                {
-                    float zVal = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
-                    points.Add(new Point((int)Math.Floor(currentX), (int)Math.Ceiling(currentY), polygon.Depth, polygon.Color));
-                    currentX += 1.0f;
-                }
-
-                currentY += 1.0f;
-            }
-
-            return points;
+            return resultPixels;
         }
 
-        public static bool ZeroCheck(float v1, float v2)
+        private static bool ZeroCheck(float v1, float v2)
         {
-            return Math.Abs(v1 - v2) < 0.00000001;
+            return Math.Abs(v1 - v2) < 0.0000001f;
         }
 
         public static float Interpolate(float targetY, float x1, float y1, float x2, float y2)
@@ -156,7 +204,8 @@ namespace ObjRenderer.Helpers
         {
             double coefficient = 0;
 
-            foreach (var normal in face.Select(f => normals.ElementAt(f.VertexNormalIndex ?? 0)))
+            var faceNormals = face.Select(f => normals.ElementAt(f.VertexNormalIndex ?? 0));
+            foreach (var normal in faceNormals)
             {
                 coefficient += GetColorCoefficientUsingLambertLightingModel(lightingVector, normal);
             }
@@ -210,11 +259,6 @@ namespace ObjRenderer.Helpers
 
                 bitmap.SetPixel(x, y, color.R, color.G, color.B);
             }
-        }
-
-        private static Point to2DPoint(Vector4 vertex)
-        {
-            return new((int)vertex.X, (int)vertex.Y);
         }
     }
 }
