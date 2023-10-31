@@ -37,7 +37,7 @@ namespace ObjRenderer.Helpers
 
             List<Point> facePixels = CalculateFacePixels(points, zBuffer, width, height);
 
-            foreach(var pixel in facePixels)
+            foreach (var pixel in facePixels)
             {
                 bitmap.SetPixel(pixel.X, pixel.Y, color.R, color.G, color.B);
             }
@@ -62,7 +62,7 @@ namespace ObjRenderer.Helpers
         {
             List<Point> resultPixels = new();
 
-            points = points.OrderBy(p => p.Y).ToList();
+            points.Sort((point1, point2) => point1.Y.CompareTo(point2.Y));
 
             float x0 = points[0].X;
             float y0 = points[0].Y;
@@ -76,7 +76,11 @@ namespace ObjRenderer.Helpers
 
             float currentY = y0;
 
-            while (currentY <= y1)
+            if (z1 < 0 || z2 < 0 || z0 < 0)
+            {
+                int a = 7;
+            }
+            while (currentY <= y1 && currentY > -100 && currentY < height + 100)
             {
                 float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
                 float targetX2 = Interpolate(currentY, x0, y0, x1, y1);
@@ -90,17 +94,20 @@ namespace ObjRenderer.Helpers
 
                 float currentX = targetX1;
 
-                while (currentX <= targetX2)
+                while (currentX <= targetX2 && currentX > -100 && currentX < width + 100)
                 {
                     int x = (int)Math.Floor(currentX);
                     int y = (int)Math.Ceiling(currentY);
 
                     double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
-
-                    if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                    
+                    lock (zBuffer)
                     {
-                        resultPixels.Add(new(x, y));
-                        zBuffer[x, y] = zValue;
+                        if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                        {
+                            resultPixels.Add(new(x, y));
+                            zBuffer[x, y] = zValue;
+                        }
                     }
 
                     currentX += 1.0f;
@@ -111,7 +118,7 @@ namespace ObjRenderer.Helpers
 
             currentY = y1;
 
-            while (currentY <= y2) ///ToDo cycle in function
+            while (currentY <= y2 && currentY > -100 && currentY < height + 100) ///ToDo cycle in function
             {
                 float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
                 float targetX2 = Interpolate(currentY, x1, y1, x2, y2);
@@ -125,19 +132,21 @@ namespace ObjRenderer.Helpers
 
                 float currentX = targetX1;
 
-                while (currentX <= targetX2)
+                while (currentX <= targetX2 && currentX > -100 && currentX < width + 100)
                 {
                     int x = (int)Math.Floor(currentX);
                     int y = (int)Math.Ceiling(currentY);
 
                     double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
 
-                    if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                    lock (zBuffer)
                     {
-                        resultPixels.Add(new(x, y));
-                        zBuffer[x, y] = zValue;
+                        if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
+                        {
+                            resultPixels.Add(new(x, y));
+                            zBuffer[x, y] = zValue;
+                        }
                     }
-
                     currentX += 1.0f;
                 }
 
@@ -212,7 +221,8 @@ namespace ObjRenderer.Helpers
 
             coefficient /= face.Count;
 
-            return coefficient;
+
+            return coefficient * 0.5 + 0.5; // чтобы не было сильно тёмных цветов
         }
 
         private static void DrawLineIfFits(Bitmap bitmap, Point previousPoint, Point currentPoint, System.Drawing.Color color)

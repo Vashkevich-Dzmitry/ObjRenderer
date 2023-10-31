@@ -12,8 +12,8 @@ namespace ObjRenderer
     {
         private const string path = @"./Data/model.obj";
 
-        private const float nearPlaneDistance = 200.0f;
-        private const float farPlaneDistance = 2000.0f;
+        private const float nearPlaneDistance = 20.0f;
+        private const float farPlaneDistance = 200.0f;
 
         private const float cameraAlpha = (float)Math.PI / 2;
         private const float cameraBeta = 0.0f;
@@ -41,7 +41,7 @@ namespace ObjRenderer
             Camera = new(cameraAlpha, cameraBeta, cameraDistanceZ, cameraDistanceX, cameraDistanceY);
             Camera.PropertyChanged += CameraChanged;
 
-            lightingVector = -Vector3.One;
+            lightingVector = Vector3.One;
 
             Image = image;
 
