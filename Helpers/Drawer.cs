@@ -89,7 +89,7 @@ namespace ObjRenderer.Helpers
                         Vector3 pixelCoordinates = b.X * p1 + b.Y * p2 + b.Z * p3;
                         float pixelZValue = pixelCoordinates.Z;
 
-                        if (zBuffer[x, y] > pixelZValue)
+                        if (zBuffer[x, y] < pixelZValue)
                         {
                             zBuffer[x, y] = pixelZValue;
                             bitmap.SetPixel(x, y, (byte)pixelColor.X, (byte)pixelColor.Y, (byte)pixelColor.Z);
@@ -112,7 +112,7 @@ namespace ObjRenderer.Helpers
             {
                 for (int j = 0; j < height; j++)
                 {
-                    result[i, j] = double.MaxValue;
+                    result[i, j] = double.MinValue;
                 }
             }
 

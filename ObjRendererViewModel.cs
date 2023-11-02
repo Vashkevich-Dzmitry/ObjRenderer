@@ -14,8 +14,8 @@ namespace ObjRenderer
     {
         private const string path = @"./Data/model.obj";
 
-        private const float nearPlaneDistance = 0.1f;
-        private const float farPlaneDistance = 100.0f;
+        private const float nearPlaneDistance = 1f;
+        private const float farPlaneDistance = 1000f;
 
         private const float baseScale = 100f;
 
