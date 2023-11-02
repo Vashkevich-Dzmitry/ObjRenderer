@@ -1,8 +1,10 @@
 ﻿using ObjRenderer.Helpers;
 using ObjRenderer.Models;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Numerics;
 using System.Windows.Controls;
+using System.Windows.Media;
 using static ObjRenderer.Helpers.CoordinateTransformer;
 using static ObjRenderer.Helpers.ObjParser;
 
@@ -12,12 +14,14 @@ namespace ObjRenderer
     {
         private const string path = @"./Data/model.obj";
 
-        private const float nearPlaneDistance = 20.0f;
-        private const float farPlaneDistance = 200.0f;
+        private const float nearPlaneDistance = 0.1f;
+        private const float farPlaneDistance = 100.0f;
+
+        private const float baseScale = 100f;
 
         private const float cameraAlpha = (float)Math.PI / 2;
         private const float cameraBeta = 0.0f;
-        private const float cameraDistanceZ = 100.0f;
+        private const float cameraDistanceZ = 150.0f;
         private const float cameraDistanceX = 0.0f;
         private const float cameraDistanceY = 0.0f;
 
@@ -62,7 +66,7 @@ namespace ObjRenderer
             Vector3 forward = -Vector3.UnitZ;
             Vector3 up = Vector3.UnitY;
 
-            float scale = cameraDistanceZ / Math.Max(model.Size.XSize, Math.Max(model.Size.ZSize, model.Size.YSize));
+            float scale = baseScale / Math.Max(model.Size.XSize, Math.Max(model.Size.ZSize, model.Size.YSize));
 
             var worldMatrix = GetWorldMatrix(position, forward, up);
             var scaleMatrix = GetScaleMatrix(scale);
@@ -80,7 +84,7 @@ namespace ObjRenderer
         {
             var viewMatrix = GetViewMatrix(Camera.Eye, Camera.Target, Vector3.UnitY);
 
-            var projectionMatrix = GetProjectionMatrix(45, pixelWidth / pixelHeight, nearPlaneDistance, farPlaneDistance);
+            var projectionMatrix = GetProjectionMatrix(60, pixelWidth / pixelHeight, nearPlaneDistance, farPlaneDistance);
 
             var viewportMatrix = GetViewPortMatrix(pixelWidth, pixelHeight);
 

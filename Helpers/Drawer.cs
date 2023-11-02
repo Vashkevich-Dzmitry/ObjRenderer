@@ -2,13 +2,13 @@
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
-using System.Windows.Shapes;
+using static System.Math;
 
 namespace ObjRenderer.Helpers
 {
     public static class Drawer
     {
-        public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, List<Vector3> normals, int width, int height, Color color, Vector3 lightingVector)
+        public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, List<Vector3> normals, int width, int height, Color baseColor, Vector3 lightingVector)
         {
             double[,] zBuffer = GetZBuffer(width, height);
 
@@ -17,11 +17,17 @@ namespace ObjRenderer.Helpers
 
             Parallel.ForEach(faces, (face) =>
             {
-                Color faceColor = CalculateColor(lightingVector, face, normals, color);
+                (Vector3 color1, Vector3 color2, Vector3 color3) = CalculateColor(lightingVector, face, normals, baseColor);
 
-                List<Vector4> points = new(face.Select(f => vertices.ElementAt(f.VertexIndex)));
+                List<Vector4> points = face.Select(f => vertices.ElementAt(f.VertexIndex)).ToList();
 
-                Rasterize(bitmap, points, faceColor, zBuffer);
+                (Vector3 point1, Vector3 point2, Vector3 point3) = (
+                    new(points[0].X, points[0].Y, points[0].Z),
+                    new(points[1].X, points[1].Y, points[1].Z),
+                    new(points[2].X, points[2].Y, points[2].Z)
+                    );
+
+                Rasterize(bitmap, point1, point2, point3, color1, color2, color3, zBuffer);
             });
 
             bitmap.Source.AddDirtyRect(new(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
@@ -30,17 +36,72 @@ namespace ObjRenderer.Helpers
             return bitmap;
         }
 
-        private static void Rasterize(Bitmap bitmap, List<Vector4> points, Color color, double[,] zBuffer)
+        private static void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 c1, Vector3 c2, Vector3 c3, double[,] zBuffer)
         {
-            int width = bitmap.PixelWidth;
-            int height = bitmap.PixelHeight;
+            int xMin = (int)Max(0, Ceiling(Min(Min(p1.X, p2.X), p3.X)));
+            int yMin = (int)Max(0, Ceiling(Min(Min(p1.Y, p2.Y), p3.Y)));
+            int xMax = (int)Min(bitmap.PixelWidth, Ceiling(Max(Max(p1.X, p2.X), p3.X)));
+            int yMax = (int)Min(bitmap.PixelHeight, Ceiling(Max(Max(p1.Y, p2.Y), p3.Y)));
 
-            List<Point> facePixels = CalculateFacePixels(points, zBuffer, width, height);
+            Vector2 p1p2 = new(p2.X - p1.X, p2.Y - p1.Y);
+            Vector2 p2p3 = new(p3.X - p2.X, p3.Y - p2.Y);
+            Vector2 p3p1 = new(p1.X - p3.X, p1.Y - p3.Y);
 
-            foreach (var pixel in facePixels)
+            float denom = 1 / PerpDot(-p3p1, p1p2);
+
+            bool f1 = p2p3.Y > 0 || (p2p3.Y == 0 && p2p3.X < 0);
+            bool f2 = p3p1.Y > 0 || (p3p1.Y == 0 && p3p1.X < 0);
+            bool f3 = p1p2.Y > 0 || (p1p2.Y == 0 && p1p2.X < 0);
+
+            Vector2 pp1 = new(p1.X - xMin, p1.Y - yMin);
+            Vector2 pp2 = new(p2.X - xMin, p2.Y - yMin);
+            Vector2 pp3 = new(p3.X - xMin, p3.Y - yMin);
+
+            Vector3 b0 = denom * new Vector3()
             {
-                bitmap.SetPixel(pixel.X, pixel.Y, color.R, color.G, color.B);
+                X = PerpDot(pp3, pp2),
+                Y = PerpDot(pp1, pp3),
+                Z = PerpDot(pp2, pp1)
+            };
+
+            Vector3 dbdx = denom * new Vector3()
+            {
+                X = pp3.Y - pp2.Y,
+                Y = pp1.Y - pp3.Y,
+                Z = pp2.Y - pp1.Y,
+            };
+
+            Vector3 dbdy = denom * new Vector3()
+            {
+                X = pp2.X - pp3.X,
+                Y = pp3.X - pp1.X,
+                Z = pp1.X - pp2.X,
+            };
+
+            for (int y = yMin; y < yMax; y++, b0 += dbdy)
+            {
+                Vector3 b = b0;
+                for (int x = xMin; x < xMax; x++, b += dbdx)
+                {
+                    if (b.X > 0 && b.Y > 0 && b.Z > 0 || (b.X == 0 && f1) || (b.Y == 0 && f2) || (b.Z == 0 && f3))
+                    {
+                        Vector3 pixelColor = b.X * c1 + b.Y * c2 + b.Z * c3;
+                        Vector3 pixelCoordinates = b.X * p1 + b.Y * p2 + b.Z * p3;
+                        float pixelZValue = pixelCoordinates.Z;
+
+                        if (zBuffer[x, y] > pixelZValue)
+                        {
+                            zBuffer[x, y] = pixelZValue;
+                            bitmap.SetPixel(x, y, (byte)pixelColor.X, (byte)pixelColor.Y, (byte)pixelColor.Z);
+                        }
+                    }
+                }
             }
+        }
+
+        private static float PerpDot(Vector2 a, Vector2 b)
+        {
+            return a.X * b.Y - a.Y * b.X;
         }
 
         private static double[,] GetZBuffer(int width, int height)
@@ -58,117 +119,6 @@ namespace ObjRenderer.Helpers
             return result;
         }
 
-        private static List<Point> CalculateFacePixels(List<Vector4> points, double[,] zBuffer, int width, int height)
-        {
-            List<Point> resultPixels = new();
-
-            points.Sort((point1, point2) => point1.Y.CompareTo(point2.Y));
-
-            float x0 = points[0].X;
-            float y0 = points[0].Y;
-            float z0 = points[0].Z;
-            float x1 = points[1].X;
-            float y1 = points[1].Y;
-            float z1 = points[1].Z;
-            float x2 = points[2].X;
-            float y2 = points[2].Y;
-            float z2 = points[2].Z;
-
-            float currentY = y0;
-
-            if (z1 < 0 || z2 < 0 || z0 < 0)
-            {
-                int a = 7;
-            }
-            while (currentY <= y1 && currentY > -100 && currentY < height + 100)
-            {
-                float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
-                float targetX2 = Interpolate(currentY, x0, y0, x1, y1);
-                float targetZ1 = Interpolate(currentY, z0, y0, z2, y2);
-                float targetZ2 = Interpolate(currentY, z0, y0, z1, y1);
-
-                if (targetX1 > targetX2)
-                {
-                    (targetX1, targetX2) = (targetX2, targetX1);
-                }
-
-                float currentX = targetX1;
-
-                while (currentX <= targetX2 && currentX > -100 && currentX < width + 100)
-                {
-                    int x = (int)Math.Floor(currentX);
-                    int y = (int)Math.Ceiling(currentY);
-
-                    double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
-                    
-                    lock (zBuffer)
-                    {
-                        if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
-                        {
-                            resultPixels.Add(new(x, y));
-                            zBuffer[x, y] = zValue;
-                        }
-                    }
-
-                    currentX += 1.0f;
-                }
-
-                currentY += 1.0f;
-            }
-
-            currentY = y1;
-
-            while (currentY <= y2 && currentY > -100 && currentY < height + 100) ///ToDo cycle in function
-            {
-                float targetX1 = Interpolate(currentY, x0, y0, x2, y2);
-                float targetX2 = Interpolate(currentY, x1, y1, x2, y2);
-                float targetZ1 = Interpolate(currentY, z0, y0, z2, y2);
-                float targetZ2 = Interpolate(currentY, z1, y1, z2, y2);
-
-                if (targetX1 > targetX2)
-                {
-                    (targetX1, targetX2) = (targetX2, targetX1);
-                }
-
-                float currentX = targetX1;
-
-                while (currentX <= targetX2 && currentX > -100 && currentX < width + 100)
-                {
-                    int x = (int)Math.Floor(currentX);
-                    int y = (int)Math.Ceiling(currentY);
-
-                    double zValue = Interpolate(currentX, targetZ1, targetX1, targetZ2, targetX2);
-
-                    lock (zBuffer)
-                    {
-                        if (x > 0 && x < width && y > 0 && y < height && zBuffer[x, y] > zValue)
-                        {
-                            resultPixels.Add(new(x, y));
-                            zBuffer[x, y] = zValue;
-                        }
-                    }
-                    currentX += 1.0f;
-                }
-
-                currentY += 1.0f;
-            }
-
-            return resultPixels;
-        }
-
-        private static bool ZeroCheck(float v1, float v2)
-        {
-            return Math.Abs(v1 - v2) < 0.0000001f;
-        }
-
-        public static float Interpolate(float targetY, float x1, float y1, float x2, float y2)
-        {
-            if (ZeroCheck(y1, y2))
-                return x1;
-            else
-                return (x1 - x2) / (y1 - y2) * (targetY - y1) + x1;
-        }
-
         /// <summary>
         /// Рассчитывает цвет полигона face, используя модель освещения Ламберта
         /// </summary>
@@ -177,15 +127,36 @@ namespace ObjRenderer.Helpers
         /// <param name="normals"></param>
         /// <param name="baseColor"></param>
         /// <returns>Цвет полигона</returns>
-        private static Color CalculateColor(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals, Color baseColor)
+        private static (Vector3, Vector3, Vector3) CalculateColor(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals, Color baseColor)
         {
-            double coefficient = CalculateColorCoefficient(lightingVector, face, normals);
 
-            int red = (int)Math.Round(baseColor.R * coefficient);
-            int green = (int)Math.Round(baseColor.G * coefficient);
-            int blue = (int)Math.Round(baseColor.B * coefficient);
+            (float k1, float k2, float k3) = CalculateColorCoefficient(lightingVector, face, normals);
 
-            return Color.FromArgb(red, green, blue);
+            Vector3 color1 = new()
+            {
+                X = baseColor.R * k1,
+                Y = baseColor.G * k1,
+                Z = baseColor.B * k1,
+
+            };
+
+            Vector3 color2 = new()
+            {
+                X = baseColor.R * k2,
+                Y = baseColor.G * k2,
+                Z = baseColor.B * k2,
+
+            };
+
+            Vector3 color3 = new()
+            {
+                X = baseColor.R * k3,
+                Y = baseColor.G * k3,
+                Z = baseColor.B * k3,
+
+            };
+
+            return (color1, color2, color3);
         }
 
         /// <summary>
@@ -194,12 +165,12 @@ namespace ObjRenderer.Helpers
         /// <param name="lightingVector"></param>
         /// <param name="normalVector"></param>
         /// <returns>Доля базового цвета, необходимую для получения цвета вершины полигона</returns>
-        private static double GetColorCoefficientUsingLambertLightingModel(Vector3 lightingVector, Vector3 normalVector)
+        private static float GetColorCoefficientUsingLambertLightingModel(Vector3 lightingVector, Vector3 normalVector)
         {
             var normal = Vector3.Normalize(normalVector);
             var lighting = Vector3.Normalize(lightingVector);
 
-            return Math.Max(Vector3.Dot(normal, lighting), 0);
+            return Math.Max(Vector3.Dot(normal, lighting), 0) * 0.5f + 0.5f;
         }
 
         /// <summary>
@@ -209,66 +180,16 @@ namespace ObjRenderer.Helpers
         /// <param name="face"></param>
         /// <param name="normals"></param>
         /// <returns>Цвет полигона</returns>
-        private static double CalculateColorCoefficient(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals)
+        private static (float, float, float) CalculateColorCoefficient(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals)
         {
-            double coefficient = 0;
+            Vector3 normal1 = normals.ElementAt(face.ElementAtOrDefault(0).VertexNormalIndex ?? 0);
+            Vector3 normal2 = normals.ElementAt(face.ElementAtOrDefault(1).VertexNormalIndex ?? 0);
+            Vector3 normal3 = normals.ElementAt(face.ElementAtOrDefault(2).VertexNormalIndex ?? 0);
 
-            var faceNormals = face.Select(f => normals.ElementAt(f.VertexNormalIndex ?? 0));
-            foreach (var normal in faceNormals)
-            {
-                coefficient += GetColorCoefficientUsingLambertLightingModel(lightingVector, normal);
-            }
-
-            coefficient /= face.Count;
-
-
-            return coefficient * 0.5 + 0.5; // чтобы не было сильно тёмных цветов
-        }
-
-        private static void DrawLineIfFits(Bitmap bitmap, Point previousPoint, Point currentPoint, System.Drawing.Color color)
-        {
-            if ((previousPoint.X >= 0 && previousPoint.Y >= 0 && previousPoint.X < bitmap.PixelWidth && previousPoint.Y < bitmap.PixelHeight)
-                || (currentPoint.X >= 0 && currentPoint.Y >= 0 && currentPoint.X < bitmap.PixelWidth && currentPoint.Y < bitmap.PixelHeight))
-            {
-                DrawLine(bitmap, previousPoint, currentPoint, color);
-            }
-        }
-
-        private static void DrawLine(Bitmap bitmap, Point previousPoint, Point currentPoint, System.Drawing.Color color)
-        {
-            int x0 = previousPoint.X;
-            int y0 = previousPoint.Y;
-            int x1 = currentPoint.X;
-            int y1 = currentPoint.Y;
-
-            int deltaX = Math.Abs(x1 - x0);
-            int deltaY = Math.Abs(y1 - y0);
-            int x = x0;
-            int y = y0;
-            int xIncrement = x0 < x1 ? 1 : -1;
-            int yIncrement = y0 < y1 ? 1 : -1;
-            int error = deltaX - deltaY;
-
-            bitmap.SetPixel(x, y, color.R, color.G, color.B);
-
-            while (x != x1 || y != y1)
-            {
-                int error2 = error * 2;
-
-                if (error2 > -deltaY)
-                {
-                    error -= deltaY;
-                    x += xIncrement;
-                }
-
-                if (error2 < deltaX)
-                {
-                    error += deltaX;
-                    y += yIncrement;
-                }
-
-                bitmap.SetPixel(x, y, color.R, color.G, color.B);
-            }
+            float k1 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal1);
+            float k2 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal2);
+            float k3 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal3);
+            return (k1, k2, k3);
         }
     }
 }

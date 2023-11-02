@@ -23,14 +23,11 @@ namespace ObjRenderer
 
         public void SetPixel(int x, int y, byte r, byte g, byte b)
         {
-            if (x > 0 && x < PixelWidth && y > 0 && y < PixelHeight)
-            {
-                byte* address = BackBuffer + y * BackBufferStride + x * BytesPerPixel;
-                address[0] = b;
-                address[1] = g;
-                address[2] = r;
-                address[3] = 255;
-            }
+            byte* address = BackBuffer + y * BackBufferStride + x * BytesPerPixel;
+            address[0] = b;
+            address[1] = g;
+            address[2] = r;
+            address[3] = 255;
         }
 
     }
