@@ -1,8 +1,5 @@
-﻿using ObjRenderer.Helpers;
-using ObjRenderer.Models;
-using System.Numerics;
+﻿using ObjRenderer.ViewModels;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace ObjRenderer
@@ -31,7 +28,6 @@ namespace ObjRenderer
             viewModel = new ObjRendererViewModel(Image, (int)ImagePanel.ActualWidth, (int)ImagePanel.ActualHeight);
             DataContext = viewModel;
 
-            viewModel.ViewChanged += DrawModel;
             viewModel.LoadModel();
         }
 
@@ -54,10 +50,10 @@ namespace ObjRenderer
                     viewModel.Camera.X -= keyDistanceChange;
                     break;
                 case Key.Z:
-                    viewModel.Camera.Z += keyDistanceChange;
+                    viewModel.Camera.R += keyDistanceChange;
                     break;
                 case Key.X:
-                    viewModel.Camera.Z -= keyDistanceChange;
+                    viewModel.Camera.R -= keyDistanceChange;
                     break;
                 case Key.Q:
                     viewModel.Camera.Beta += keyBetaChange;
@@ -106,12 +102,7 @@ namespace ObjRenderer
         {
             bool isControlPressed = Keyboard.Modifiers == ModifierKeys.Control;
             float delta = e.Delta * mouseWheelSmoothness;
-            viewModel.Camera.Z -= isControlPressed ? delta * controlScaleValue : delta;
-        }
-
-        internal void DrawModel(object? sender, EventArgs e)
-        {
-            Image.Source = Drawer.DrawBitmap(viewModel.FacesToDraw, viewModel.VerticesToDraw, viewModel.Model.VertexNormals, viewModel.pixelWidth, viewModel.pixelHeight, System.Drawing.Color.Green, viewModel.lightingVector).Source;
+            viewModel.Camera.R -= isControlPressed ? delta * controlScaleValue : delta;
         }
     }
 }

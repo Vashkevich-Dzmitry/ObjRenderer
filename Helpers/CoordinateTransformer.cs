@@ -1,16 +1,15 @@
-﻿using ObjRenderer.Models;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace ObjRenderer.Helpers
 {
     public static class CoordinateTransformer
     {
-        public static IEnumerable<Vector4> ApplyTransform(this IEnumerable<Vector4> vectors, Matrix4x4 transformationMatrix)
+        public static ParallelQuery<Vector4> ApplyTransform(this ParallelQuery<Vector4> vectors, Matrix4x4 transformationMatrix)
         {
             return vectors.Select(v => Vector4.Transform(v, transformationMatrix));
         }
 
-        public static IEnumerable<Vector4> DivideByW(this IEnumerable<Vector4> vectors)
+        public static ParallelQuery<Vector4> DivideByW(this ParallelQuery<Vector4> vectors)
         {
             return vectors.Select(v => new Vector4(v.X / v.W, v.Y / v.W, v.Z / v.W, 1));
         }

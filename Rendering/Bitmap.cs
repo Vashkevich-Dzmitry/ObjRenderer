@@ -1,7 +1,7 @@
 ﻿using System.Windows.Media.Imaging;
 using System.Windows.Media;
 
-namespace ObjRenderer
+namespace ObjRenderer.Rendering
 {
     public unsafe class Bitmap
     {

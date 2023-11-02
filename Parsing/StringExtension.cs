@@ -1,14 +1,9 @@
 ﻿using System.Globalization;
 
-namespace ObjRenderer.Helpers
+namespace ObjRenderer.Parsing
 {
     public static class StringExtension
     {
-        public static double ToDouble(this string s)
-        {
-            return double.Parse(s, CultureInfo.InvariantCulture);
-        }
-
         public static float ToFloat(this string s)
         {
             return float.Parse(s, CultureInfo.InvariantCulture);

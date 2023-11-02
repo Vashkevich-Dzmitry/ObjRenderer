@@ -1,21 +1,21 @@
 ﻿using System.ComponentModel;
 using System.Numerics;
 
-namespace ObjRenderer.Models
+namespace ObjRenderer.ViewModels
 {
-    public class Camera : INotifyPropertyChanged
+    public class CameraViewModel : INotifyPropertyChanged
     {
         private float alpha;
         private float beta;
-        private float z;
+        private float r;
         private float x;
         private float y;
 
-        public Camera(float alpha, float beta, float r, float x, float y)
+        public CameraViewModel(float alpha, float beta, float r, float x, float y)
         {
             this.alpha = alpha;
             this.beta = beta;
-            this.z = r;
+            this.r = r;
             this.x = x;
             this.y = y;
         }
@@ -24,9 +24,9 @@ namespace ObjRenderer.Models
         {
             get
             {
-                double x = Z * Math.Sin(Alpha) * Math.Sin(Beta) + X;
-                double y = Z * Math.Cos(Alpha) + Y;
-                double z = Z * Math.Sin(Alpha) * Math.Cos(Beta);
+                double x = R * Math.Sin(Alpha) * Math.Sin(Beta) + X;
+                double y = R * Math.Cos(Alpha) + Y;
+                double z = R * Math.Sin(Alpha) * Math.Cos(Beta);
 
                 return new Vector3((float)x, (float)y, (float)z);
             }
@@ -40,22 +40,22 @@ namespace ObjRenderer.Models
             }
         }
 
-        public float Z
+        public float R
         {
-            get { return z; }
+            get => r;
             set
             {
                 if (value > 0 && value < 1000)
                 {
-                    z = value;
-                    OnPropertyChanged(nameof(Z));
+                    r = value;
+                    OnPropertyChanged(nameof(R));
                 }
             }
         }
 
         public float X
         {
-            get { return x; }
+            get => x;
             set
             {
                 if (value > -1000 && value < 1000)
@@ -68,7 +68,7 @@ namespace ObjRenderer.Models
 
         public float Y
         {
-            get { return y; }
+            get => y;
             set
             {
                 if (value > -1000 && value < 1000)
@@ -80,7 +80,7 @@ namespace ObjRenderer.Models
         }
         public float Alpha
         {
-            get { return alpha; }
+            get => alpha;
             set
             {
                 if (value > 0 && value < Math.PI)
@@ -93,7 +93,7 @@ namespace ObjRenderer.Models
 
         public float Beta
         {
-            get { return beta; }
+            get => beta;
             set
             {
                 beta = value % (2 * (float)Math.PI);

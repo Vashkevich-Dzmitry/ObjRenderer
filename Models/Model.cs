@@ -9,8 +9,8 @@ namespace ObjRenderer.Models
         public List<Vector4> Vertices = new(InitialListSize);
         public readonly List<IList<FaceDescription>> Faces = new(InitialListSize);
         
-        public readonly List<Vector3> VertexTextures = new List<Vector3>(InitialListSize);
-        public readonly List<Vector3> VertexNormals = new List<Vector3>(InitialListSize);
+        public readonly List<Vector3> VertexTextures = new(InitialListSize);
+        public readonly List<Vector3> VertexNormals = new(InitialListSize);
 
         public Dimensions Size
         {
@@ -18,7 +18,7 @@ namespace ObjRenderer.Models
             {
                 var size = new Dimensions();
 
-                if (Vertices.Count() > 0)
+                if (Vertices.Count > 0)
                 {
                     size.XMax = Vertices.Max(v => v.X);
                     size.XMin = Vertices.Min(v => v.X);

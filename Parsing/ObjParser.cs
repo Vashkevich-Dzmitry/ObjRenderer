@@ -2,7 +2,7 @@
 using System.IO;
 using ObjRenderer.Models;
 
-namespace ObjRenderer.Helpers
+namespace ObjRenderer.Parsing
 {
     public static class ObjParser
     {
@@ -14,7 +14,7 @@ namespace ObjRenderer.Helpers
             {"f", ParseFace}
         };
 
-        public static Model Parse(string path)
+        public static Model ParseObj(string path)
         {
             var model = new Model();
             foreach (var line in File.ReadAllLines(path).Where(s => !string.IsNullOrWhiteSpace(s)))
@@ -34,7 +34,7 @@ namespace ObjRenderer.Helpers
                     parts[1].ToFloat(),
                     parts[2].ToFloat(),
                     parts[3].ToFloat(),
-                    parts.ElementAtOrDefault(4)?.ToFloat() ?? 1.0f));
+                    parts.ElementAtOrDefault(4)?.ToNullableFloat() ?? 1.0f));
         }
 
         private static void ParseVertexTexture(Model model, string[] parts)
@@ -42,8 +42,8 @@ namespace ObjRenderer.Helpers
             model.VertexTextures.Add(
                 new Vector3(
                     parts[1].ToFloat(),
-                    parts.ElementAtOrDefault(2)?.ToFloat() ?? 0.0f,
-                    parts.ElementAtOrDefault(3)?.ToFloat() ?? 0.0f));
+                    parts.ElementAtOrDefault(2)?.ToNullableFloat() ?? 0.0f,
+                    parts.ElementAtOrDefault(3)?.ToNullableFloat() ?? 0.0f));
         }
 
         private static void ParseVertexNormal(Model model, string[] parts)
@@ -52,8 +52,8 @@ namespace ObjRenderer.Helpers
             model.VertexNormals.Add(
                 new Vector3(
                     parts[1].ToFloat(),
-                    parts.ElementAtOrDefault(2)?.ToFloat() ?? 0.0f,
-                    parts.ElementAtOrDefault(3)?.ToFloat() ?? 0.0f));
+                    parts[2].ToFloat(),
+                    parts[3].ToFloat()));
 
         }
 
@@ -65,8 +65,8 @@ namespace ObjRenderer.Helpers
                         var indices = part.Split('/');
                         return new FaceDescription(
                             GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
-                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToInt(), model.VertexTextures.Count),
-                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToInt(), model.VertexNormals.Count));
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToNullableInt(), model.VertexTextures.Count),
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToNullableInt(), model.VertexNormals.Count));
                     }
                     ).ToArray());
         }
@@ -78,7 +78,7 @@ namespace ObjRenderer.Helpers
 
         private static int? GetNormalizedVertexIndexOrDefault(int? index, int count)
         {
-            return index.HasValue ? (index!.Value > 0 ? --index : count - index) : null;
+            return index.HasValue ? index!.Value > 0 ? --index : count - index : null;
         }
     }
 }
