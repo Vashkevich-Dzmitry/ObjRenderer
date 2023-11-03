@@ -1,41 +1,60 @@
 ﻿using ObjRenderer.Models;
 using System.Drawing;
 using System.Numerics;
+using System.Windows.Media.Media3D;
 using static System.Math;
 
 namespace ObjRenderer.Rendering
 {
-    public static class Drawer
+    public class Drawer
     {
-        public static Bitmap DrawBitmap(List<IList<FaceDescription>> faces, List<Vector4> vertices, List<Vector3> normals, int width, int height, Color baseColor, Vector3 lightingVector)
-        {
-            float[,] zBuffer = GetZBuffer(width, height);
+        private const float _initialValue = float.MinValue;
+        private readonly float[] _preinitializedBuffer;
 
-            Bitmap bitmap = new(width, height);
-            bitmap.Source.Lock();
+        private readonly object[] _zBufferLocks;
+
+        private readonly int _width, _height;
+
+        private Bitmap _bitmap;
+        public Drawer(int width, int height)
+        {
+            _width = width;
+            _height = height;
+
+            _zBufferLocks = new object[width * height];
+            _preinitializedBuffer = new float[width * height];
+            for (int i = 0; i < width * height; i++)
+            {
+                _preinitializedBuffer[i] = _initialValue;
+                _zBufferLocks[i] = new();
+            }
+        }
+
+        public Bitmap DrawBitmap(List<Face> faces, List<Vector4> vertices, List<Vector3> normals, Color baseColor, Vector3 lightingVector)
+        {
+            float[] zBuffer = GetZBuffer();
+
+            _bitmap = new Bitmap(_width, _height);
+            _bitmap.Source.Lock();
 
             Parallel.ForEach(faces, (face) =>
             {
                 Vector3 color = CalculateColor(lightingVector, face, normals, baseColor);
 
-                List<Vector4> points = face.Select(f => vertices.ElementAt(f.VertexIndex)).ToList();
+                Vector3 point1 = vertices.ElementAt(face.p0.index).ToVector3();
+                Vector3 point2 = vertices.ElementAt(face.p1.index).ToVector3();
+                Vector3 point3 = vertices.ElementAt(face.p2.index).ToVector3();
 
-                (Vector3 point1, Vector3 point2, Vector3 point3) = (
-                    new(points[0].X, points[0].Y, points[0].Z),
-                    new(points[1].X, points[1].Y, points[1].Z),
-                    new(points[2].X, points[2].Y, points[2].Z)
-                    );
-
-                Rasterize(bitmap, point1, point2, point3, color, zBuffer);
+                Rasterize(_bitmap, point1, point2, point3, color, zBuffer);
             });
 
-            bitmap.Source.AddDirtyRect(new(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
-            bitmap.Source.Unlock();
+            _bitmap.Source.AddDirtyRect(new(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
+            _bitmap.Source.Unlock();
 
-            return bitmap;
+            return _bitmap;
         }
 
-        private static void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 color, float[,] zBuffer)
+        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 color, float[] zBuffer)
         {
             int xMin = (int)Max(0, Ceiling(Min(Min(p1.X, p2.X), p3.X)));
             int yMin = (int)Max(0, Ceiling(Min(Min(p1.Y, p2.Y), p3.Y)));
@@ -86,15 +105,22 @@ namespace ObjRenderer.Rendering
                     {
                         float zValue = (b.X * p1 + b.Y * p2 + b.Z * p3).Z;
 
-                        if (zBuffer[x, y] < zValue)
-                        {
-                            zBuffer[x, y] = zValue;
+                        int pixelIndex = y * bitmap.PixelWidth + x;
 
-                            bitmap.SetPixel(x, y, (byte)color.X, (byte)color.Y, (byte)color.Z);
+                        lock (_zBufferLocks[pixelIndex])
+                        {
+                            if (zBuffer[pixelIndex] < zValue)
+                            {
+                                zBuffer[pixelIndex] = zValue;
+
+                                bitmap.SetPixel(x, y, (byte)color.X, (byte)color.Y, (byte)color.Z);
+                            }
                         }
+
                     }
                 }
             }
+
         }
 
         private static float PerpDot(Vector2 a, Vector2 b)
@@ -102,22 +128,12 @@ namespace ObjRenderer.Rendering
             return a.X * b.Y - a.Y * b.X;
         }
 
-        private static float[,] GetZBuffer(int width, int height)
+        private float[] GetZBuffer()
         {
-            float[,] result = new float[width, height];
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    result[x, y] = float.MinValue;
-                }
-            }
-
-            return result;
+            return (float[])_preinitializedBuffer.Clone();
         }
 
-        private static Vector3 CalculateColor(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals, Color baseColor)
+        private static Vector3 CalculateColor(Vector3 lightingVector, Face face, List<Vector3> normals, Color baseColor)
         {
 
             (float k1, float k2, float k3) = CalculateColorCoefficient(lightingVector, face, normals);
@@ -143,11 +159,11 @@ namespace ObjRenderer.Rendering
             return Max(Vector3.Dot(normal, lighting), 0);
         }
 
-        private static (float, float, float) CalculateColorCoefficient(Vector3 lightingVector, IList<FaceDescription> face, List<Vector3> normals)
+        private static (float, float, float) CalculateColorCoefficient(Vector3 lightingVector, Face face, List<Vector3> normals)
         {
-            Vector3 normal1 = normals.ElementAt(face.ElementAtOrDefault(0).VertexNormalIndex ?? 0);
-            Vector3 normal2 = normals.ElementAt(face.ElementAtOrDefault(1).VertexNormalIndex ?? 0);
-            Vector3 normal3 = normals.ElementAt(face.ElementAtOrDefault(2).VertexNormalIndex ?? 0);
+            Vector3 normal1 = normals.ElementAt(face.p0.normalIndex ?? 0);
+            Vector3 normal2 = normals.ElementAt(face.p1.normalIndex ?? 0);
+            Vector3 normal3 = normals.ElementAt(face.p2.normalIndex ?? 0);
 
             float k1 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal1);
             float k2 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal2);

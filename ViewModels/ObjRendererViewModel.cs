@@ -24,6 +24,8 @@ namespace ObjRenderer.ViewModels
         private const float cameraDistanceX = 0.0f;
         private const float cameraDistanceY = 0.0f;
 
+        public Drawer Drawer { get; set; }
+
         public Image Image { get; set; }
         public Model Model { get; set; }
         public CameraViewModel Camera { get; set; }
@@ -31,7 +33,7 @@ namespace ObjRenderer.ViewModels
 
         public Vector3 LightingVector { get; set; }
         public List<Vector4> VerticesToDraw { get; set; }
-        public List<IList<FaceDescription>> FacesToDraw { get; set; }
+        public List<Face> FacesToDraw { get; set; }
 
 
         public int pixelWidth;
@@ -39,6 +41,8 @@ namespace ObjRenderer.ViewModels
 
         public ObjRendererViewModel(Image image, int pixelWidth, int pixelHeight)
         {
+            Drawer = new(pixelWidth, pixelHeight);
+
             FPSCounter = new();
 
             Camera = new(cameraAlpha, cameraBeta, cameraDistanceR, cameraDistanceX, cameraDistanceY);
@@ -95,14 +99,14 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(matrix)
                 .ToList();
 
-            FacesToDraw = Model.Faces.AsParallel().Where(f => !f.Any(item => VerticesToDraw.ElementAt(item.VertexIndex).W < 0)).ToList();
+            FacesToDraw = Model.Faces;
 
             VerticesToDraw = VerticesToDraw.AsParallel()
                 .DivideByW()
                 .ApplyTransform(viewportMatrix)
                 .ToList();
 
-            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model.VertexNormals, pixelWidth, pixelHeight, System.Drawing.Color.Green, LightingVector).Source;
+            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model.VertexNormals, System.Drawing.Color.Green, LightingVector).Source;
 
             FPSCounter.Stop();
         }

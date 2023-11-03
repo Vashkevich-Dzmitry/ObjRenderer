@@ -59,16 +59,18 @@ namespace ObjRenderer.Parsing
 
         private static void ParseFace(Model model, string[] parts)
         {
-            model.Faces.Add(
-                parts.Skip(1).Select(part =>
-                    {
-                        var indices = part.Split('/');
-                        return new FaceDescription(
-                            GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
-                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToNullableInt(), model.VertexTextures.Count),
-                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToNullableInt(), model.VertexNormals.Count));
-                    }
-                    ).ToArray());
+            List<FaceVertex> vertices = parts
+                .Skip(1)
+                .Select(part => {
+                                    var indices = part.Split('/');
+                                    return new FaceVertex(
+                                        GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
+                                        GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToNullableInt(), model.VertexTextures.Count),
+                                        GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToNullableInt(), model.VertexNormals.Count));
+                                })
+                .ToList();
+
+            model.Faces.Add(new Face(vertices[0], vertices[1], vertices[2]));
         }
 
         private static int GetNormalizedVertexIndex(int index, int count)
