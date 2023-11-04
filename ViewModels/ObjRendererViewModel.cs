@@ -11,8 +11,6 @@ namespace ObjRenderer.ViewModels
 {
     public class ObjRendererViewModel : INotifyPropertyChanged
     {
-        private const string path = @"./Data/model.obj";
-
         private const float nearPlaneDistance = 1f;
         private const float farPlaneDistance = 1000f;
 
@@ -61,9 +59,10 @@ namespace ObjRenderer.ViewModels
             RenderModel();
         }
 
-        public void LoadModel()
+        public void LoadModel(string path)
         {
             Model model = ParseObj(path);
+
 
             Vector3 position = new(-model.Size.XCenter, -model.Size.YCenter, -model.Size.ZCenter);
             Vector3 forward = -Vector3.UnitZ;
@@ -80,6 +79,14 @@ namespace ObjRenderer.ViewModels
 
             Model = model;
 
+            ResetCamera();
+        }
+
+        public void ResetCamera()
+        {
+            Camera.PropertyChanged -= CameraChanged;
+            Camera.Reset(cameraAlpha, cameraBeta, cameraDistanceR, cameraDistanceX, cameraDistanceY);
+            Camera.PropertyChanged += CameraChanged;
             RenderModel();
         }
 

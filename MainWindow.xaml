@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:ObjRenderer"
         mc:Ignorable="d"
         
-        Title="ObjRenderer" Height="1080" Width="1920" WindowState="Maximized" Loaded="WindowLoaded" MouseWheel="WindowMouseWheel" MouseMove="WindowMouseMove" MouseDown="WindowMouseDown" KeyDown="WindowKeyDown">
+        Title="ObjRenderer" Height="1080" Width="1920" WindowState="Maximized" Loaded="WindowLoaded" MouseWheel="WindowMouseWheel" MouseMove="WindowMouseMove" MouseDown="WindowMouseDown" KeyDown="WindowKeyDown" MouseUp="WindowMouseUp">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -25,22 +25,30 @@
             />
         </DockPanel>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="1">
-            <Label Content="α:" />
-            <Label Content="{Binding Path=Camera.Alpha}" ContentStringFormat="{}{0:F3}"/>
-            <Label Content="β:" />
-            <Label Content="{Binding Path=Camera.Beta}" ContentStringFormat="{}{0:F3}"/>
-            <Label Content="R:" />
-            <Label Content="{Binding Path=Camera.R}" ContentStringFormat="{}{0:F1}"/>
-            <Label Content="X:" />
-            <Label Content="{Binding Path=Camera.X}" />
-            <Label Content="Y:" />
-            <Label Content="{Binding Path=Camera.Y}" />
-        </StackPanel>
-        <DockPanel Grid.Row="1" HorizontalAlignment="Right">
-            <Label Content="FPS: " Width="32" />
-            <Label Content="{Binding Path=FPSCounter.FPS}" Width="32" />
-        </DockPanel>
+        <Border Grid.Row="1" BorderBrush="Silver" BorderThickness="0,1,0,0">
+            <DockPanel>
+                
+                <StackPanel Orientation="Horizontal" >
+                    <Button x:Name="ChangeModelButton" Margin="5, 3, 10, 3" Padding="5, 0" BorderBrush="Silver" Background="WhiteSmoke" Content="Change model" Click="ChangeModelButtonClick" />
+                    <Button x:Name="ResetCameraButton" Margin="5, 3, 5, 3" Padding="5, 0" BorderBrush="Silver" Background="WhiteSmoke" Content="Reset camera" Click="ResetCameraButtonClick" />
+                    <Label Content="α:" />
+                    <Label Content="{Binding Path=Camera.Alpha}" ContentStringFormat="{}{0:F3}"/>
+                    <Label Content="β:" />
+                    <Label Content="{Binding Path=Camera.Beta}" ContentStringFormat="{}{0:F3}"/>
+                    <Label Content="R:" />
+                    <Label Content="{Binding Path=Camera.R}" ContentStringFormat="{}{0:F1}"/>
+                    <Label Content="X:" />
+                    <Label Content="{Binding Path=Camera.X}" />
+                    <Label Content="Y:" />
+                    <Label Content="{Binding Path=Camera.Y}" />
+                </StackPanel>
+                
+                <DockPanel HorizontalAlignment="Right" Width="64">
+                    <Label Content="FPS: " />
+                    <Label Content="{Binding Path=FPSCounter.FPS}" />
+                </DockPanel>
+            </DockPanel>
+        </Border>
 
     </Grid>
 </Window>

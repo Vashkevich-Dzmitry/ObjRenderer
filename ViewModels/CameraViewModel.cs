@@ -101,6 +101,15 @@ namespace ObjRenderer.ViewModels
             }
         }
 
+        public void Reset(float alpha, float beta, float r, float x, float y)
+        {
+            Alpha = alpha;
+            Beta = beta;
+            R = r;
+            X = x;
+            Y = y;
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
         {
