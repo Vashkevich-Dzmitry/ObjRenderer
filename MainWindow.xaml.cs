@@ -10,7 +10,7 @@ namespace ObjRenderer
     public partial class MainWindow : Window
     {
         private const float mouseButtonSmoothness = 0.005f;
-        private const float mouseWheelSmoothness = 0.01f;
+        private const float mouseWheelSmoothness = 0.005f;
         private const float keyDistanceChange = 1.0f;
         private const float keyBetaChange = (float)Math.PI / 12;
         private const float keyAlphaChange = (float)Math.PI /36;
@@ -101,7 +101,7 @@ namespace ObjRenderer
         private void WindowMouseWheel(object sender, MouseWheelEventArgs e)
         {
             bool isControlPressed = Keyboard.Modifiers == ModifierKeys.Control;
-            float delta = e.Delta * mouseWheelSmoothness;
+            float delta = e.Delta >= 0 ? (float)Math.Ceiling(e.Delta * mouseWheelSmoothness) : (float)Math.Floor(e.Delta * mouseWheelSmoothness);
             viewModel.Camera.R -= isControlPressed ? delta * controlScaleValue : delta;
         }
     }

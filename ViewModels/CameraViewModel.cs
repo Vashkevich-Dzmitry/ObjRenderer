@@ -45,7 +45,7 @@ namespace ObjRenderer.ViewModels
             get => r;
             set
             {
-                if (value > 0 && value < 1000)
+                if (value >= 55 && value < 1000)
                 {
                     r = value;
                     OnPropertyChanged(nameof(R));

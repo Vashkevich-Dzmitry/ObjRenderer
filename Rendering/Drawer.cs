@@ -67,10 +67,6 @@ namespace ObjRenderer.Rendering
 
             float denom = 1 / PerpDot(-p3p1, p1p2);
 
-            bool f1 = p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0;
-            bool f2 = p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0;
-            bool f3 = p1p2.Y > 0 || p1p2.Y == 0 && p1p2.X < 0;
-
             Vector2 pp1 = new(p1.X - xMin, p1.Y - yMin);
             Vector2 pp2 = new(p2.X - xMin, p2.Y - yMin);
             Vector2 pp3 = new(p3.X - xMin, p3.Y - yMin);
@@ -101,9 +97,12 @@ namespace ObjRenderer.Rendering
                 Vector3 b = b0;
                 for (int x = xMin; x < xMax; x++, b += dbdx)
                 {
-                    if (b.X > 0 && b.Y > 0 && b.Z > 0 || b.X == 0 && f1 || b.Y == 0 && f2 || b.Z == 0 && f3)
+                    if (b.X > 0 && b.Y > 0 && b.Z > 0 
+                        || b.X == 0 && (p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0) 
+                        || b.Y == 0 && (p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0) 
+                        || b.Z == 0 && (p1p2.Y > 0 || p1p2.Y == 0 && p1p2.X < 0))
                     {
-                        float zValue = (b.X * p1 + b.Y * p2 + b.Z * p3).Z;
+                        float zValue = b.X * p1.Z + b.Y * p2.Z + b.Z * p3.Z;
 
                         int pixelIndex = y * bitmap.PixelWidth + x;
 
