@@ -41,11 +41,17 @@ namespace ObjRenderer.Rendering
             {
                 Vector3 color = CalculateColor(lightingVector, face, normals, baseColor);
 
-                Vector3 point1 = vertices.ElementAt(face.p0.index).ToVector3();
-                Vector3 point2 = vertices.ElementAt(face.p1.index).ToVector3();
-                Vector3 point3 = vertices.ElementAt(face.p2.index).ToVector3();
+                Vector3 p1 = vertices.ElementAt(face.p0.index).ToVector3();
+                Vector3 p2 = vertices.ElementAt(face.p1.index).ToVector3();
+                Vector3 p3 = vertices.ElementAt(face.p2.index).ToVector3();
 
-                Rasterize(_bitmap, point1, point2, point3, color, zBuffer);
+                Vector2 p1p2 = new(p2.X - p1.X, p2.Y - p1.Y);
+                Vector2 p1p3 = new(p3.X - p1.X, p3.Y - p1.Y);
+
+                if (PerpDot(p1p3, p1p2) > 0)
+                {
+                    Rasterize(_bitmap, p1, p2, p3, color, zBuffer);
+                }
             });
 
             _bitmap.Source.AddDirtyRect(new(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
@@ -97,9 +103,9 @@ namespace ObjRenderer.Rendering
                 Vector3 b = b0;
                 for (int x = xMin; x < xMax; x++, b += dbdx)
                 {
-                    if (b.X > 0 && b.Y > 0 && b.Z > 0 
-                        || b.X == 0 && (p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0) 
-                        || b.Y == 0 && (p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0) 
+                    if (b.X > 0 && b.Y > 0 && b.Z > 0
+                        || b.X == 0 && (p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0)
+                        || b.Y == 0 && (p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0)
                         || b.Z == 0 && (p1p2.Y > 0 || p1p2.Y == 0 && p1p2.X < 0))
                     {
                         float zValue = b.X * p1.Z + b.Y * p2.Z + b.Z * p3.Z;
