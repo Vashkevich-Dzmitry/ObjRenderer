@@ -45,27 +45,29 @@ namespace ObjRenderer.Rendering
         {
             _zBuffer = GetZBuffer();
 
+            lightingVector = Vector3.Normalize(lightingVector);
+
             _bitmap = new Bitmap(_width, _height);
             _bitmap.Source.Lock();
 
             Parallel.ForEach(faces, (face) =>
             {
-                Vector3 transformedPoint1 = transformedVertices.ElementAt(face.p0.index).ToVector3();
-                Vector3 transformedPoint2 = transformedVertices.ElementAt(face.p1.index).ToVector3();
-                Vector3 transformedPoint3 = transformedVertices.ElementAt(face.p2.index).ToVector3();
+                Vector3 transformedPoint1 = transformedVertices[face.p0.index].ToVector3();
+                Vector3 transformedPoint2 = transformedVertices[face.p1.index].ToVector3();
+                Vector3 transformedPoint3 = transformedVertices[face.p2.index].ToVector3();
 
-                Vector3 p1 = vectices.ElementAt(face.p0.index).ToVector3();
-                Vector3 p2 = vectices.ElementAt(face.p1.index).ToVector3();
-                Vector3 p3 = vectices.ElementAt(face.p2.index).ToVector3();
+                Vector3 p1 = vectices[face.p0.index].ToVector3();
+                Vector3 p2 = vectices[face.p1.index].ToVector3();
+                Vector3 p3 = vectices[face.p2.index].ToVector3();
 
-                Vector3 faceCenter = (p1 + p2 + p3) / 3;
-                Vector3 calculatedNormal = CalculateNormal(p1, p2, p3);
+                Vector3 normal1 = face.p0.normalIndex.HasValue ? normals[face.p0.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+                Vector3 normal2 = face.p1.normalIndex.HasValue ? normals[face.p1.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+                Vector3 normal3 = face.p2.normalIndex.HasValue ? normals[face.p2.normalIndex.Value] : CalculateNormal(p1, p2, p3);
 
-                Vector3 normal1 = face.p0.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p0.normalIndex.Value) : calculatedNormal;
-                Vector3 normal2 = face.p1.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p1.normalIndex.Value) : calculatedNormal;
-                Vector3 normal3 = face.p2.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p2.normalIndex.Value) : calculatedNormal;
+                Vector2 p1p2 = new(transformedPoint2.X - transformedPoint1.X, transformedPoint2.Y - transformedPoint1.Y);
+                Vector2 p1p3 = new(transformedPoint3.X - transformedPoint1.X, transformedPoint3.Y - transformedPoint1.Y);
 
-                if (Vector3.Dot(calculatedNormal, Vector3.Normalize(eyeVector - faceCenter)) > 0)
+                if (PerpDot(p1p3, p1p2) > 0)
                 {
                     Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, lightingVector, eyeVector);
                 }
@@ -162,8 +164,8 @@ namespace ObjRenderer.Rendering
             Vector3 eyeToPoint = Vector3.Normalize(pixelPoint - eye);
             Vector3 pointNormal = Vector3.Normalize(pixelNormal);
 
-            float diffuseK = Max(Vector3.Dot(pointNormal, Vector3.Normalize(lighting)), 0.0f);
-            float specularK = (float)Pow(Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(Vector3.Normalize(lighting), pointNormal)), eyeToPoint), 0.0f), GlossFactor);
+            float diffuseK = Max(Vector3.Dot(pointNormal, lighting), 0.0f);
+            float specularK = (float)Pow(Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(lighting, pointNormal)), eyeToPoint), 0.0f), GlossFactor);
             float ambientK = AmbientIntensity;
 
             sRed = (byte)Min(_specularColor.R * specularK, 255);
