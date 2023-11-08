@@ -11,6 +11,10 @@ namespace ObjRenderer.ViewModels
 {
     public class ObjRendererViewModel : INotifyPropertyChanged
     {
+        private System.Drawing.Color DiffuseColor = System.Drawing.Color.Green;
+        private System.Drawing.Color AmbientColor = System.Drawing.Color.Green;
+        private System.Drawing.Color SpecularColor = System.Drawing.Color.White;
+
         private const float nearPlaneDistance = 1f;
         private const float farPlaneDistance = 1000f;
 
@@ -31,6 +35,7 @@ namespace ObjRenderer.ViewModels
 
         public Vector3 LightingVector { get; set; }
         public List<Vector4> VerticesToDraw { get; set; }
+        public List<Vector4> NormalsToDraw { get; set; }
         public List<Face> FacesToDraw { get; set; }
 
 
@@ -39,7 +44,7 @@ namespace ObjRenderer.ViewModels
 
         public ObjRendererViewModel(Image image, int pixelWidth, int pixelHeight)
         {
-            Drawer = new(pixelWidth, pixelHeight);
+            Drawer = new(pixelWidth, pixelHeight, DiffuseColor, AmbientColor, SpecularColor);
 
             FPSCounter = new();
 
@@ -76,6 +81,7 @@ namespace ObjRenderer.ViewModels
             var matrix = worldMatrix * scaleMatrix;
 
             model.Vertices = model.Vertices.AsParallel().ApplyTransform(matrix).ToList();
+            model.VertexNormals = model.VertexNormals.AsParallel().ApplyTransform(matrix).ToList();
 
             Model = model;
 
@@ -106,6 +112,10 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(matrix)
                 .ToList();
 
+            NormalsToDraw = Model.VertexNormals.AsParallel()
+                .ApplyTransform(matrix)
+                .ToList();
+
             FacesToDraw = Model.Faces;
 
             VerticesToDraw = VerticesToDraw.AsParallel()
@@ -113,7 +123,12 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(viewportMatrix)
                 .ToList();
 
-            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model.VertexNormals, System.Drawing.Color.Green, LightingVector).Source;
+            NormalsToDraw = Model.VertexNormals.AsParallel()
+                .DivideByW()
+                .ApplyTransform(viewportMatrix)
+                .ToList();
+
+            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, NormalsToDraw, LightingVector, Camera.Eye).Source;
 
             FPSCounter.Stop();
         }
