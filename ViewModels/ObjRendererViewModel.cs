@@ -109,7 +109,11 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(matrix)
                 .ToList();
 
-            FacesToDraw = Model.Faces;
+            FacesToDraw = Model.Faces.Where(f =>
+                VerticesToDraw.ElementAt(f.p0.index).W > 0 &&
+                VerticesToDraw.ElementAt(f.p1.index).W > 0 &&
+                VerticesToDraw.ElementAt(f.p2.index).W > 0)
+                .ToList();
 
             VerticesToDraw = VerticesToDraw.AsParallel()
                 .DivideByW()
