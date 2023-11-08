@@ -50,11 +50,10 @@ namespace ObjRenderer.Parsing
         {
 
             model.VertexNormals.Add(
-                new Vector4(
+                new Vector3(
                     parts[1].ToFloat(),
                     parts[2].ToFloat(),
-                    parts[3].ToFloat(),
-                    1.0f));
+                    parts[3].ToFloat()));
 
         }
 

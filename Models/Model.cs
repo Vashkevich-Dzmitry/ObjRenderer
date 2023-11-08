@@ -9,7 +9,7 @@ namespace ObjRenderer.Models
         public readonly List<Face> Faces = new(InitialListSize);
         
         public List<Vector4> Vertices = new(InitialListSize);
-        public List<Vector4> VertexNormals = new(InitialListSize);
+        public List<Vector3> VertexNormals = new(InitialListSize);
         public readonly List<Vector3> VertexTextures = new(InitialListSize);
 
         public Dimensions Size

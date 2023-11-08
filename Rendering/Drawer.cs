@@ -16,7 +16,7 @@ namespace ObjRenderer.Rendering
         private readonly object[] _zBufferLocks;
 
         private float[] _zBuffer;
-        
+
         private readonly int _width, _height;
 
         private readonly Color _diffuseColor;
@@ -41,7 +41,7 @@ namespace ObjRenderer.Rendering
             }
         }
 
-        public Bitmap DrawBitmap(List<Face> faces, List<Vector4> vertices, List<Vector4> normals, Vector3 lightingVector, Vector3 eyeVector)
+        public Bitmap DrawBitmap(List<Face> faces, List<Vector4> transformedVertices, List<Vector4> vectices, List<Vector3> normals, Vector3 lightingVector, Vector3 eyeVector)
         {
             _zBuffer = GetZBuffer();
 
@@ -50,16 +50,25 @@ namespace ObjRenderer.Rendering
 
             Parallel.ForEach(faces, (face) =>
             {
-                Vector3 point1 = vertices.ElementAt(face.p0.index).ToVector3();
-                Vector3 point2 = vertices.ElementAt(face.p1.index).ToVector3();
-                Vector3 point3 = vertices.ElementAt(face.p2.index).ToVector3();
+                Vector3 transformedPoint1 = transformedVertices.ElementAt(face.p0.index).ToVector3();
+                Vector3 transformedPoint2 = transformedVertices.ElementAt(face.p1.index).ToVector3();
+                Vector3 transformedPoint3 = transformedVertices.ElementAt(face.p2.index).ToVector3();
 
-                Vector3 calculatedNormal = CalculateNormal(point1, point2, point3);
-                Vector3 normal1 = face.p0.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p0.normalIndex.Value).ToVector3() : calculatedNormal;
-                Vector3 normal2 = face.p1.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p1.normalIndex.Value).ToVector3() : calculatedNormal;
-                Vector3 normal3 = face.p2.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p2.normalIndex.Value).ToVector3() : calculatedNormal;
+                Vector3 p1 = vectices.ElementAt(face.p0.index).ToVector3();
+                Vector3 p2 = vectices.ElementAt(face.p1.index).ToVector3();
+                Vector3 p3 = vectices.ElementAt(face.p2.index).ToVector3();
 
-                Rasterize(_bitmap, point1, point2, point3, normal1, normal2, normal3, lightingVector, eyeVector);
+                Vector3 faceCenter = (p1 + p2 + p3) / 3;
+                Vector3 calculatedNormal = CalculateNormal(p1, p2, p3);
+
+                Vector3 normal1 = face.p0.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p0.normalIndex.Value) : calculatedNormal;
+                Vector3 normal2 = face.p1.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p1.normalIndex.Value) : calculatedNormal;
+                Vector3 normal3 = face.p2.normalIndex.HasValue ? normals.ElementAtOrDefault(face.p2.normalIndex.Value) : calculatedNormal;
+
+                if (Vector3.Dot(calculatedNormal, Vector3.Normalize(eyeVector - faceCenter)) > 0)
+                {
+                    Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, lightingVector, eyeVector);
+                }
             });
 
             _bitmap.Source.AddDirtyRect(new(0, 0, _bitmap.PixelWidth, _bitmap.PixelHeight));
@@ -68,7 +77,7 @@ namespace ObjRenderer.Rendering
             return _bitmap;
         }
 
-        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 lighting, Vector3 eye)
+        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p01, Vector3 p02, Vector3 p03, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 lighting, Vector3 eye)
         {
             int xMin = (int)Max(0, Ceiling(Min(Min(p1.X, p2.X), p3.X)));
             int yMin = (int)Max(0, Ceiling(Min(Min(p1.Y, p2.Y), p3.Y)));
@@ -111,9 +120,9 @@ namespace ObjRenderer.Rendering
                 Vector3 b = b0;
                 for (int x = xMin; x < xMax; x++, b += dbdx)
                 {
-                    if (b.X > 0 && b.Y > 0 && b.Z > 0 
-                        || b.X == 0 && (p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0) 
-                        || b.Y == 0 && (p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0) 
+                    if (b.X > 0 && b.Y > 0 && b.Z > 0
+                        || b.X == 0 && (p2p3.Y > 0 || p2p3.Y == 0 && p2p3.X < 0)
+                        || b.Y == 0 && (p3p1.Y > 0 || p3p1.Y == 0 && p3p1.X < 0)
                         || b.Z == 0 && (p1p2.Y > 0 || p1p2.Y == 0 && p1p2.X < 0))
                     {
                         float zValue = b.X * p1.Z + b.Y * p2.Z + b.Z * p3.Z;
@@ -126,10 +135,10 @@ namespace ObjRenderer.Rendering
                             {
                                 _zBuffer[pixelIndex] = zValue;
 
-                                Vector3 pixelPoint = b.X * p1 + b.Y * p2 + b.Z * p3;
+                                Vector3 pixelPoint = b.X * p01 + b.Y * p02 + b.Z * p03;
                                 Vector3 pixelNormal = b.X * n1 + b.Y * n2 + b.Z * n3;
 
-                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting,eye);
+                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting, eye);
 
                                 bitmap.SetPixel(x, y, red, green, blue);
                             }
@@ -144,36 +153,35 @@ namespace ObjRenderer.Rendering
         private (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye)
         {
             const float AmbientIntensity = 0.25f;
-            const float GlossFactor = 3f;
+            const float GlossFactor = 8f;
 
-            float sRed, sGreen, sBlue;
-            float dRed, dGreen, dBlue;
-            float aRed, aGreen, aBlue;
+            byte sRed, sGreen, sBlue;
+            byte dRed, dGreen, dBlue;
+            byte aRed, aGreen, aBlue;
 
             Vector3 eyeToPoint = Vector3.Normalize(pixelPoint - eye);
-            Vector3 lightToPoint = Vector3.Normalize(lighting - pixelPoint);
             Vector3 pointNormal = Vector3.Normalize(pixelNormal);
 
-            float diffuseK = Math.Max(Vector3.Dot(pointNormal, lightToPoint), 0.0f);
-            float specularK = (float)Math.Pow(Math.Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(lightToPoint, pointNormal)), eyeToPoint), 0.0f), GlossFactor);
+            float diffuseK = Max(Vector3.Dot(pointNormal, Vector3.Normalize(lighting)), 0.0f);
+            float specularK = (float)Pow(Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(Vector3.Normalize(lighting), pointNormal)), eyeToPoint), 0.0f), GlossFactor);
             float ambientK = AmbientIntensity;
 
-            sRed = _specularColor.R * specularK;
-            sGreen = _specularColor.G * specularK;
-            sBlue = _specularColor.B * specularK;
+            sRed = (byte)Min(_specularColor.R * specularK, 255);
+            sGreen = (byte)Min(_specularColor.G * specularK, 255);
+            sBlue = (byte)Min(_specularColor.B * specularK, 255);
 
-            dRed = _diffuseColor.R *   diffuseK;
-            dGreen = _diffuseColor.G * diffuseK;
-            dBlue = _diffuseColor.B *  diffuseK;
+            dRed = (byte)Min(_diffuseColor.R * diffuseK, 255);
+            dGreen = (byte)Min(_diffuseColor.G * diffuseK, 255);
+            dBlue = (byte)Min(_diffuseColor.B * diffuseK, 255);
 
-            aRed = _ambientColor.R *   ambientK;
-            aGreen = _ambientColor.G * ambientK;
-            aBlue = _ambientColor.B *  ambientK;
+            aRed = (byte)Min(_ambientColor.R * ambientK, 255);
+            aGreen = (byte)Min(_ambientColor.G * ambientK, 255);
+            aBlue = (byte)Min(_ambientColor.B * ambientK, 255);
 
             byte red = (byte)Min(sRed + dRed + aRed, 255);
-            byte green = (byte)Min(sGreen+ dGreen + aGreen, 255);
+            byte green = (byte)Min(sGreen + dGreen + aGreen, 255);
             byte blue = (byte)Min(sBlue + dBlue + aBlue, 255);
-            
+
             return (red, green, blue);
         }
 
@@ -195,47 +203,7 @@ namespace ObjRenderer.Rendering
             Vector3 normal = Vector3.Cross(side1, side2);
             normal = Vector3.Normalize(normal);
 
-            normal = -normal;
-
             return normal;
-        }
-
-        private static Vector3 CalculateColor(Vector3 lightingVector, Face face, List<Vector3> normals, Color baseColor)
-        {
-
-            (float k1, float k2, float k3) = CalculateColorCoefficient(lightingVector, face, normals);
-
-            float k = (k1 + k2 + k3) / 3;
-
-            Vector3 color = new()
-            {
-                X = baseColor.R * k,
-                Y = baseColor.G * k,
-                Z = baseColor.B * k,
-
-            };
-
-            return color;
-        }
-
-        private static float GetColorCoefficientUsingLambertLightingModel(Vector3 lightingVector, Vector3 normalVector)
-        {
-            var normal = Vector3.Normalize(normalVector);
-            var lighting = Vector3.Normalize(lightingVector);
-
-            return Max(Vector3.Dot(normal, lighting), 0);
-        }
-
-        private static (float, float, float) CalculateColorCoefficient(Vector3 lightingVector, Face face, List<Vector3> normals)
-        {
-            Vector3 normal1 = normals.ElementAt(face.p0.normalIndex ?? 0);
-            Vector3 normal2 = normals.ElementAt(face.p1.normalIndex ?? 0);
-            Vector3 normal3 = normals.ElementAt(face.p2.normalIndex ?? 0);
-
-            float k1 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal1);
-            float k2 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal2);
-            float k3 = GetColorCoefficientUsingLambertLightingModel(lightingVector, normal3);
-            return (k1, k2, k3);
         }
     }
 }

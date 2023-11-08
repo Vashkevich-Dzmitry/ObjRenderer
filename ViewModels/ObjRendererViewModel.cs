@@ -35,9 +35,7 @@ namespace ObjRenderer.ViewModels
 
         public Vector3 LightingVector { get; set; }
         public List<Vector4> VerticesToDraw { get; set; }
-        public List<Vector4> NormalsToDraw { get; set; }
         public List<Face> FacesToDraw { get; set; }
-
 
         public int pixelWidth;
         public int pixelHeight;
@@ -81,7 +79,6 @@ namespace ObjRenderer.ViewModels
             var matrix = worldMatrix * scaleMatrix;
 
             model.Vertices = model.Vertices.AsParallel().ApplyTransform(matrix).ToList();
-            model.VertexNormals = model.VertexNormals.AsParallel().ApplyTransform(matrix).ToList();
 
             Model = model;
 
@@ -112,10 +109,6 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(matrix)
                 .ToList();
 
-            NormalsToDraw = Model.VertexNormals.AsParallel()
-                .ApplyTransform(matrix)
-                .ToList();
-
             FacesToDraw = Model.Faces;
 
             VerticesToDraw = VerticesToDraw.AsParallel()
@@ -123,12 +116,7 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(viewportMatrix)
                 .ToList();
 
-            NormalsToDraw = Model.VertexNormals.AsParallel()
-                .DivideByW()
-                .ApplyTransform(viewportMatrix)
-                .ToList();
-
-            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, NormalsToDraw, LightingVector, Camera.Eye).Source;
+            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model.Vertices, Model.VertexNormals, LightingVector, Camera.Eye).Source;
 
             FPSCounter.Stop();
         }

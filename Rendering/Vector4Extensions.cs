@@ -13,5 +13,16 @@ namespace ObjRenderer.Rendering
                 Z = vector4.Z
             };
         }
+
+        public static Vector4 ToVector4(this Vector3 vector3)
+        {
+            return new Vector4()
+            {
+                X = vector3.X,
+                Y = vector3.Y,
+                Z = vector3.Z,
+                W = 1
+            };
+        }
     }
 }
