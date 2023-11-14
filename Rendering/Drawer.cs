@@ -1,9 +1,6 @@
 ﻿using ObjRenderer.Models;
 using System.Drawing;
-using System.Linq;
 using System.Numerics;
-using System.Windows;
-using System.Windows.Media.Media3D;
 using static System.Math;
 
 namespace ObjRenderer.Rendering
@@ -19,12 +16,12 @@ namespace ObjRenderer.Rendering
 
         private readonly int _width, _height;
 
-        private readonly Color _diffuseColor;
-        private readonly Color _ambientColor;
-        private readonly Color _specularColor;
+        private readonly Vector3 _diffuseColor;
+        private readonly Vector3 _ambientColor;
+        private readonly Vector3 _specularColor;
 
         private Bitmap _bitmap;
-        public Drawer(int width, int height, Color modelColor, Color backgroundColor, Color glitterColor)
+        public Drawer(int width, int height, Vector3 modelColor, Vector3 backgroundColor, Vector3 glitterColor)
         {
             _width = width;
             _height = height;
@@ -168,17 +165,17 @@ namespace ObjRenderer.Rendering
             float specularK = (float)Pow(Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(lighting, pointNormal)), eyeToPoint), 0.0f), GlossFactor);
             float ambientK = AmbientIntensity;
 
-            sRed = (byte)Min(_specularColor.R * specularK, 255);
-            sGreen = (byte)Min(_specularColor.G * specularK, 255);
-            sBlue = (byte)Min(_specularColor.B * specularK, 255);
+            sRed = (byte)Min(_specularColor.X * specularK, 255);
+            sGreen = (byte)Min(_specularColor.Y * specularK, 255);
+            sBlue = (byte)Min(_specularColor.Z * specularK, 255);
 
-            dRed = (byte)Min(_diffuseColor.R * diffuseK, 255);
-            dGreen = (byte)Min(_diffuseColor.G * diffuseK, 255);
-            dBlue = (byte)Min(_diffuseColor.B * diffuseK, 255);
+            dRed = (byte)Min(_diffuseColor.X * diffuseK, 255);
+            dGreen = (byte)Min(_diffuseColor.Y * diffuseK, 255);
+            dBlue = (byte)Min(_diffuseColor.Z * diffuseK, 255);
 
-            aRed = (byte)Min(_ambientColor.R * ambientK, 255);
-            aGreen = (byte)Min(_ambientColor.G * ambientK, 255);
-            aBlue = (byte)Min(_ambientColor.B * ambientK, 255);
+            aRed = (byte)Min(_ambientColor.X * ambientK, 255);
+            aGreen = (byte)Min(_ambientColor.Y * ambientK, 255);
+            aBlue = (byte)Min(_ambientColor.Z * ambientK, 255);
 
             byte red = (byte)Min(sRed + dRed + aRed, 255);
             byte green = (byte)Min(sGreen + dGreen + aGreen, 255);

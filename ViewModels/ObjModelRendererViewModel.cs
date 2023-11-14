@@ -1,19 +1,21 @@
 ﻿using ObjRenderer.Helpers;
 using ObjRenderer.Models;
+using ObjRenderer.Parsing;
 using ObjRenderer.Rendering;
 using System.ComponentModel;
 using System.Numerics;
 using System.Windows.Controls;
 using static ObjRenderer.Helpers.CoordinateTransformer;
-using static ObjRenderer.Parsing.ObjParser;
+using static ObjRenderer.Parsing.ObjFileParser;
 
 namespace ObjRenderer.ViewModels
 {
-    public class ObjRendererViewModel : INotifyPropertyChanged
+    public class ObjModelRendererViewModel : INotifyPropertyChanged
     {
-        private System.Drawing.Color DiffuseColor = System.Drawing.Color.Green;
-        private System.Drawing.Color AmbientColor = System.Drawing.Color.Green;
-        private System.Drawing.Color SpecularColor = System.Drawing.Color.White;
+        private Vector3 DiffuseColor = new(System.Drawing.Color.Green.R, System.Drawing.Color.Green.G, System.Drawing.Color.Green.B);
+        private Vector3 AmbientColor = new(System.Drawing.Color.Green.R, System.Drawing.Color.Green.G, System.Drawing.Color.Green.B);
+        private Vector3 SpecularColor = new(System.Drawing.Color.White.R, System.Drawing.Color.White.G, System.Drawing.Color.White.B);
+
 
         private const float nearPlaneDistance = 1f;
         private const float farPlaneDistance = 1000f;
@@ -27,8 +29,9 @@ namespace ObjRenderer.ViewModels
         private const float cameraDistanceY = 0.0f;
 
         public Drawer Drawer { get; set; }
+        public ObjModelParser ModelParser { get; set; }
 
-        public Image Image { get; set; }
+        public System.Windows.Controls.Image Image { get; set; }
         public Model Model { get; set; }
         public CameraViewModel Camera { get; set; }
         public FPSCounterViewModel FPSCounter { get; set; }
@@ -40,9 +43,10 @@ namespace ObjRenderer.ViewModels
         public int pixelWidth;
         public int pixelHeight;
 
-        public ObjRendererViewModel(Image image, int pixelWidth, int pixelHeight)
+        public ObjModelRendererViewModel(System.Windows.Controls.Image image, int pixelWidth, int pixelHeight, string modelDirectoryPath)
         {
             Drawer = new(pixelWidth, pixelHeight, DiffuseColor, AmbientColor, SpecularColor);
+            ModelParser = new(modelDirectoryPath);
 
             FPSCounter = new();
 
@@ -62,23 +66,32 @@ namespace ObjRenderer.ViewModels
             RenderModel();
         }
 
-        public void LoadModel(string path)
+        public void ChangeModel(string modelDirectoryPath)
         {
-            Model model = ParseObj(path);
+            ModelParser.ModelDirectoryPath = modelDirectoryPath;
+            LoadModel();
+        }
 
+        public void LoadModel()
+        {
+            Model model = ModelParser.ParseModel();
 
-            Vector3 position = new(-model.Size.XCenter, -model.Size.YCenter, -model.Size.ZCenter);
+            Vector3 modelCenter = model.Center;
+
+            Vector3 position = new(-modelCenter.X, -modelCenter.Y, -modelCenter.Z);
             Vector3 forward = -Vector3.UnitZ;
             Vector3 up = Vector3.UnitY;
 
-            float scale = baseScale / Math.Max(model.Size.XSize, Math.Max(model.Size.ZSize, model.Size.YSize));
-
             var worldMatrix = GetWorldMatrix(position, forward, up);
+
+            Vector3 modelSize = model.Size;
+            float scale = baseScale / Math.Max(modelSize.X, Math.Max(modelSize.Z, modelSize.Y));
+
             var scaleMatrix = GetScaleMatrix(scale);
 
-            var matrix = worldMatrix * scaleMatrix;
+            var transformationMatrix = worldMatrix * scaleMatrix;
 
-            model.Vertices = model.Vertices.AsParallel().ApplyTransform(matrix).ToList();
+            model.Vertices = model.Vertices.AsParallel().ApplyTransform(transformationMatrix).ToList();
 
             Model = model;
 

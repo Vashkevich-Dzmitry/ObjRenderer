@@ -9,7 +9,7 @@ namespace ObjRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string _defaultModelPath = @"./Data/model.obj";
+        private const string _defaultModelDirectoryPath = @"../../../Data/Shovel Knight";
 
         private const float _mouseButtonSmoothness = 0.005f;
         private const float _mouseWheelSmoothness = 0.005f;
@@ -22,9 +22,9 @@ namespace ObjRenderer
         private event ModelPathChangedHandler ModelPathChanged;
         
         private bool _isMouseDown;
-        private Point _lastMousePosition;
+        private System.Windows.Point _lastMousePosition;
         
-        private ObjRendererViewModel viewModel;
+        private ObjModelRendererViewModel viewModel;
 
         public MainWindow()
         {
@@ -33,12 +33,12 @@ namespace ObjRenderer
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
-            viewModel = new ObjRendererViewModel(Image, (int)ImagePanel.ActualWidth, (int)ImagePanel.ActualHeight);
+            viewModel = new ObjModelRendererViewModel(Image, (int)ImagePanel.ActualWidth, (int)ImagePanel.ActualHeight, _defaultModelDirectoryPath);
             DataContext = viewModel;
 
-            viewModel.LoadModel(_defaultModelPath);
+            viewModel.LoadModel();
 
-            ModelPathChanged += viewModel.LoadModel;
+            ModelPathChanged += viewModel.ChangeModel;
         }
 
 
@@ -100,7 +100,7 @@ namespace ObjRenderer
         {
             if (_isMouseDown)
             {
-                Point currentMousePosition = e.GetPosition(this);
+                System.Windows.Point currentMousePosition = e.GetPosition(this);
                 float deltaX = (float)(currentMousePosition.X - _lastMousePosition.X);
                 float deltaY = (float)(currentMousePosition.Y - _lastMousePosition.Y);
 
@@ -126,10 +126,7 @@ namespace ObjRenderer
         private void ChangeModelButtonClick(object sender, RoutedEventArgs e)
         {
             
-            var dialog = new Microsoft.Win32.OpenFileDialog();
-            dialog.FileName = "Model"; 
-            dialog.DefaultExt = ".obj"; 
-            dialog.Filter = "Obj files(.obj)|*.obj"; 
+            var dialog = new Microsoft.Win32.OpenFolderDialog();
 
             bool? result = dialog.ShowDialog();
 
@@ -137,7 +134,7 @@ namespace ObjRenderer
             {
                 try
                 {
-                    ModelPathChanged(dialog.FileName);
+                    ModelPathChanged(dialog.FolderName);
                 }
                 catch 
                 {

@@ -2,7 +2,7 @@
 
 namespace ObjRenderer.Parsing
 {
-    public static class StringExtension
+    public static class StringExtensions
     {
         public static float ToFloat(this string s)
         {

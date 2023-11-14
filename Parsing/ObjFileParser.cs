@@ -4,9 +4,9 @@ using ObjRenderer.Models;
 
 namespace ObjRenderer.Parsing
 {
-    public static class ObjParser
+    public static class ObjFileParser
     {
-        private static readonly Dictionary<string, Action<Model, string[]>> parsers = new()
+        private static readonly Dictionary<string, Action<Model, string[]>> _parsers = new()
         {
             {"v", ParseVertex},
             {"vt", ParseVertexTexture},
@@ -21,7 +21,7 @@ namespace ObjRenderer.Parsing
             {
                 var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var type = parts[0];
-                if (parsers.TryGetValue(type, out var parse)) parse(model, parts);
+                if (_parsers.TryGetValue(type, out var parse)) parse(model, parts);
             }
 
             return model;
@@ -59,18 +59,23 @@ namespace ObjRenderer.Parsing
 
         private static void ParseFace(Model model, string[] parts)
         {
-            List<FaceVertex> vertices = parts
-                .Skip(1)
-                .Select(part => {
-                                    var indices = part.Split('/');
-                                    return new FaceVertex(
-                                        GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
-                                        GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToNullableInt(), model.VertexTextures.Count),
-                                        GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToNullableInt(), model.VertexNormals.Count));
-                                })
-                .ToList();
+            parts = parts.Skip(1).ToArray();
 
-            model.Faces.Add(new Face(vertices[0], vertices[1], vertices[2]));
+            for (int i = 0; i <= parts.Length - 3; i++)
+            {
+                List<FaceVertex> vertices = parts
+                    .Take(1).Concat(parts.Skip(i + 1))
+                    .Select(part => {
+                        var indices = part.Split('/');
+                        return new FaceVertex(
+                            GetNormalizedVertexIndex(indices[0].ToInt(), model.Vertices.Count),
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(1)?.ToNullableInt(), model.VertexTextures.Count),
+                            GetNormalizedVertexIndexOrDefault(indices.ElementAtOrDefault(2)?.ToNullableInt(), model.VertexNormals.Count));
+                    })
+                    .ToList();
+
+                model.Faces.Add(new Face(vertices[0], vertices[1], vertices[2]));
+            }
         }
 
         private static int GetNormalizedVertexIndex(int index, int count)

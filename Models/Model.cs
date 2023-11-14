@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using SixLabors.ImageSharp;
 
 namespace ObjRenderer.Models
 {
@@ -7,28 +8,38 @@ namespace ObjRenderer.Models
         private const int InitialListSize = 10000;
 
         public readonly List<Face> Faces = new(InitialListSize);
-        
+
         public List<Vector4> Vertices = new(InitialListSize);
         public List<Vector3> VertexNormals = new(InitialListSize);
-        public readonly List<Vector3> VertexTextures = new(InitialListSize);
+        public List<Vector3> VertexTextures = new(InitialListSize);
 
-        public Dimensions Size
+        public Map? normalMap;
+        public Map? specularMap;
+        public Map? diffuseMap;
+
+        public Vector3 Center
         {
             get
             {
-                var size = new Dimensions();
-
-                if (Vertices.Count > 0)
+                return new()
                 {
-                    size.XMax = Vertices.Max(v => v.X);
-                    size.XMin = Vertices.Min(v => v.X);
-                    size.YMax = Vertices.Max(v => v.Y);
-                    size.YMin = Vertices.Min(v => v.Y);
-                    size.ZMax = Vertices.Max(v => v.Z);
-                    size.ZMin = Vertices.Min(v => v.Z);
-                }
-                
-                return size;
+                    X = (Vertices.Max(v => v.X) + Vertices.Min(v => v.X)) / 2,
+                    Y = (Vertices.Max(v => v.Y) + Vertices.Min(v => v.Y)) / 2,
+                    Z = (Vertices.Max(v => v.Z) + Vertices.Min(v => v.Z)) / 2
+                };
+            }
+        }
+
+        public Vector3 Size
+        {
+            get
+            {
+                return new()
+                {
+                    X = Vertices.Max(v => v.X) - Vertices.Min(v => v.X),
+                    Y = Vertices.Max(v => v.Y) - Vertices.Min(v => v.Y),
+                    Z = Vertices.Max(v => v.Z) - Vertices.Min(v => v.Z)
+                };
             }
         }
     }
