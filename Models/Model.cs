@@ -13,9 +13,9 @@ namespace ObjRenderer.Models
         public List<Vector3> VertexNormals = new(InitialListSize);
         public List<Vector3> VertexTextures = new(InitialListSize);
 
-        public Map? normalMap;
-        public Map? specularMap;
-        public Map? diffuseMap;
+        public NormalMap? NormalMap;
+        public DiffuseMap? DiffuseMap;
+        public SpecularMap? SpecularMap;
 
         public Vector3 Center
         {

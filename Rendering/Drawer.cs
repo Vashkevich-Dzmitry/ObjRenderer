@@ -1,5 +1,5 @@
 ﻿using ObjRenderer.Models;
-using System.Drawing;
+using Drawing = System.Drawing;
 using System.Numerics;
 using static System.Math;
 
@@ -16,18 +16,18 @@ namespace ObjRenderer.Rendering
 
         private readonly int _width, _height;
 
-        private readonly Vector3 _diffuseColor;
-        private readonly Vector3 _ambientColor;
-        private readonly Vector3 _specularColor;
+        private readonly Drawing.Color _diffuseColor;
+        private readonly Drawing.Color _ambientColor;
+        private readonly Drawing.Color _specularColor;
 
         private Bitmap _bitmap;
-        public Drawer(int width, int height, Vector3 modelColor, Vector3 backgroundColor, Vector3 glitterColor)
+        public Drawer(int width, int height, Drawing.Color modelColor, Drawing.Color backgroundColor, Drawing.Color specularColor)
         {
             _width = width;
             _height = height;
             _diffuseColor = modelColor;
             _ambientColor = backgroundColor;
-            _specularColor = glitterColor;
+            _specularColor = specularColor;
 
             _zBufferLocks = new object[width * height];
             _preinitializedBuffer = new float[width * height];
@@ -38,7 +38,7 @@ namespace ObjRenderer.Rendering
             }
         }
 
-        public Bitmap DrawBitmap(List<Face> faces, List<Vector4> transformedVertices, List<Vector4> vectices, List<Vector3> normals, Vector3 lightingVector, Vector3 eyeVector)
+        public Bitmap DrawBitmap(List<Face> faces, List<Vector4> transformedVertices, Model model, Vector3 lightingVector, Vector3 eyeVector)
         {
             _zBuffer = GetZBuffer();
 
@@ -49,24 +49,28 @@ namespace ObjRenderer.Rendering
 
             Parallel.ForEach(faces, (face) =>
             {
-                Vector3 transformedPoint1 = transformedVertices[face.p0.index].ToVector3();
-                Vector3 transformedPoint2 = transformedVertices[face.p1.index].ToVector3();
-                Vector3 transformedPoint3 = transformedVertices[face.p2.index].ToVector3();
+                Vector3 transformedPoint1 = transformedVertices[face.p1.index].ToVector3();
+                Vector3 transformedPoint2 = transformedVertices[face.p2.index].ToVector3();
+                Vector3 transformedPoint3 = transformedVertices[face.p3.index].ToVector3();
 
-                Vector3 p1 = vectices[face.p0.index].ToVector3();
-                Vector3 p2 = vectices[face.p1.index].ToVector3();
-                Vector3 p3 = vectices[face.p2.index].ToVector3();
+                Vector3 p1 = model.Vertices[face.p1.index].ToVector3();
+                Vector3 p2 = model.Vertices[face.p2.index].ToVector3();
+                Vector3 p3 = model.Vertices[face.p3.index].ToVector3();
 
-                Vector3 normal1 = face.p0.normalIndex.HasValue ? normals[face.p0.normalIndex.Value] : CalculateNormal(p1, p2, p3);
-                Vector3 normal2 = face.p1.normalIndex.HasValue ? normals[face.p1.normalIndex.Value] : CalculateNormal(p1, p2, p3);
-                Vector3 normal3 = face.p2.normalIndex.HasValue ? normals[face.p2.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+                Vector3 normal1 = face.p1.normalIndex.HasValue ? model.VertexNormals[face.p1.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+                Vector3 normal2 = face.p2.normalIndex.HasValue ? model.VertexNormals[face.p2.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+                Vector3 normal3 = face.p3.normalIndex.HasValue ? model.VertexNormals[face.p3.normalIndex.Value] : CalculateNormal(p1, p2, p3);
+
+                Vector3 vt1 = face.p1.textureIndex.HasValue ? model.VertexTextures[face.p1.textureIndex.Value] : -Vector3.One;
+                Vector3 vt2 = face.p2.textureIndex.HasValue ? model.VertexTextures[face.p2.textureIndex.Value] : -Vector3.One;
+                Vector3 vt3 = face.p3.textureIndex.HasValue ? model.VertexTextures[face.p3.textureIndex.Value] : -Vector3.One;
 
                 Vector2 p1p2 = new(transformedPoint2.X - transformedPoint1.X, transformedPoint2.Y - transformedPoint1.Y);
                 Vector2 p1p3 = new(transformedPoint3.X - transformedPoint1.X, transformedPoint3.Y - transformedPoint1.Y);
 
                 if (PerpDot(p1p3, p1p2) > 0)
                 {
-                    Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, lightingVector, eyeVector);
+                    Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, vt1, vt2, vt3, lightingVector, eyeVector, model.NormalMap, model.DiffuseMap, model.SpecularMap);
                 }
             });
 
@@ -76,7 +80,7 @@ namespace ObjRenderer.Rendering
             return _bitmap;
         }
 
-        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p01, Vector3 p02, Vector3 p03, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 lighting, Vector3 eye)
+        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p01, Vector3 p02, Vector3 p03, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 vt1, Vector3 vt2, Vector3 vt3, Vector3 lighting, Vector3 eye, NormalMap? normalMap, DiffuseMap? diffuseMap, SpecularMap? specularMap)
         {
             int xMin = (int)Max(0, Ceiling(Min(Min(p1.X, p2.X), p3.X)));
             int yMin = (int)Max(0, Ceiling(Min(Min(p1.Y, p2.Y), p3.Y)));
@@ -117,6 +121,7 @@ namespace ObjRenderer.Rendering
             for (int y = yMin; y < yMax; y++, b0 += dbdy)
             {
                 Vector3 b = b0;
+
                 for (int x = xMin; x < xMax; x++, b += dbdx)
                 {
                     if (b.X > 0 && b.Y > 0 && b.Z > 0
@@ -132,12 +137,22 @@ namespace ObjRenderer.Rendering
                         {
                             if (_zBuffer[pixelIndex] < zValue)
                             {
-                                _zBuffer[pixelIndex] = zValue;
-
                                 Vector3 pixelPoint = b.X * p01 + b.Y * p02 + b.Z * p03;
-                                Vector3 pixelNormal = b.X * n1 + b.Y * n2 + b.Z * n3;
+                                Vector3 pixelTexture = b.X * vt1 + b.Y * vt2 + b.Z * vt3;
 
-                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting, eye);
+                                Vector3 pixelNormal = normalMap != null ? normalMap.GetValue(pixelTexture.X, pixelTexture.Y) : b.X * n1 + b.Y * n2 + b.Z * n3;
+
+                                float specularCoefficient = specularMap != null ? specularMap.GetValue(pixelTexture.X, pixelTexture.Y) : 1f;
+                                float diffuseCoefficient = 1f;
+                                float ambientCoefficient = 0.2f;
+
+                                Drawing.Color diffuseColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _diffuseColor;
+                                Drawing.Color ambientColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _ambientColor;
+                                Drawing.Color specularColor = _specularColor;
+
+                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting, eye, diffuseColor, ambientColor, specularColor, diffuseCoefficient, ambientCoefficient, specularCoefficient);
+
+                                _zBuffer[pixelIndex] = zValue;
 
                                 bitmap.SetPixel(x, y, red, green, blue);
                             }
@@ -149,10 +164,9 @@ namespace ObjRenderer.Rendering
 
         }
 
-        private (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye)
+        private (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye, Drawing.Color diffuseColor, Drawing.Color ambientColor, Drawing.Color specularColor, float diffuseK, float ambientK, float specularK)
         {
-            const float AmbientIntensity = 0.25f;
-            const float GlossFactor = 8f;
+            const int GlossFactor = 2;
 
             byte sRed, sGreen, sBlue;
             byte dRed, dGreen, dBlue;
@@ -161,25 +175,28 @@ namespace ObjRenderer.Rendering
             Vector3 eyeToPoint = Vector3.Normalize(pixelPoint - eye);
             Vector3 pointNormal = Vector3.Normalize(pixelNormal);
 
-            float diffuseK = Max(Vector3.Dot(pointNormal, lighting), 0.0f);
-            float specularK = (float)Pow(Max(Vector3.Dot(Vector3.Normalize(Vector3.Reflect(lighting, pointNormal)), eyeToPoint), 0.0f), GlossFactor);
-            float ambientK = AmbientIntensity;
+            float diffuseIntensity = Max(Vector3.Dot(pointNormal, lighting), 0.0f);
 
-            sRed = (byte)Min(_specularColor.X * specularK, 255);
-            sGreen = (byte)Min(_specularColor.Y * specularK, 255);
-            sBlue = (byte)Min(_specularColor.Z * specularK, 255);
+            Vector3 reflectedLighting = Vector3.Reflect(lighting, pointNormal);
+            float dot = Vector3.Dot(reflectedLighting, eyeToPoint);
+            float k = Max(dot, 0.0f);
+            float specularIntensity = MyPow(k, GlossFactor);
 
-            dRed = (byte)Min(_diffuseColor.X * diffuseK, 255);
-            dGreen = (byte)Min(_diffuseColor.Y * diffuseK, 255);
-            dBlue = (byte)Min(_diffuseColor.Z * diffuseK, 255);
+            sRed = (byte)(specularColor.R * specularIntensity);
+            sGreen = (byte)(specularColor.G * specularIntensity);
+            sBlue = (byte)(specularColor.B * specularIntensity);
 
-            aRed = (byte)Min(_ambientColor.X * ambientK, 255);
-            aGreen = (byte)Min(_ambientColor.Y * ambientK, 255);
-            aBlue = (byte)Min(_ambientColor.Z * ambientK, 255);
+            dRed = (byte)(diffuseColor.R * diffuseIntensity);
+            dGreen = (byte)(diffuseColor.G * diffuseIntensity);
+            dBlue = (byte)(diffuseColor.B * diffuseIntensity);
 
-            byte red = (byte)Min(sRed + dRed + aRed, 255);
-            byte green = (byte)Min(sGreen + dGreen + aGreen, 255);
-            byte blue = (byte)Min(sBlue + dBlue + aBlue, 255);
+            aRed = ambientColor.R;
+            aGreen = ambientColor.G;
+            aBlue = ambientColor.B;
+
+            byte red = (byte)Min(sRed * specularK + dRed * diffuseK + aRed * ambientK, 255);
+            byte green = (byte)Min(sGreen * specularK + dGreen * diffuseK + aGreen * ambientK, 255);
+            byte blue = (byte)Min(sBlue * specularK + dBlue * diffuseK + aBlue * ambientK, 255);
 
             return (red, green, blue);
         }
@@ -194,7 +211,7 @@ namespace ObjRenderer.Rendering
             return (float[])_preinitializedBuffer.Clone();
         }
 
-        public static Vector3 CalculateNormal(Vector3 p1, Vector3 p2, Vector3 p3)
+        private static Vector3 CalculateNormal(Vector3 p1, Vector3 p2, Vector3 p3)
         {
             Vector3 side1 = p2 - p1;
             Vector3 side2 = p3 - p1;
@@ -203,6 +220,22 @@ namespace ObjRenderer.Rendering
             normal = Vector3.Normalize(normal);
 
             return normal;
+        }
+
+        private static float MyPow(float number, int power)
+        {
+            if (number == 0.0f) return 0.0f;
+
+            float result = 1.0f;
+            while (power > 0)
+            {
+                if (power % 2 == 1)
+                    result *= number;
+                power >>= 1;
+                number *= number;
+            }
+
+            return result;
         }
     }
 }

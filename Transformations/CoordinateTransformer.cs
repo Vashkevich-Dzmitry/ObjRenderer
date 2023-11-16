@@ -1,9 +1,18 @@
 ﻿using System.Numerics;
 
-namespace ObjRenderer.Helpers
+namespace ObjRenderer.Transformations
 {
     public static class CoordinateTransformer
     {
+        public static ParallelQuery<Vector4> ToVector4(this ParallelQuery<Vector3> vectors3)
+        {
+            return vectors3.Select(v => new Vector4(v.X, v.Y, v.Z, 1));
+        }
+
+        public static IEnumerable<Vector3> ToVector3(this IEnumerable<Vector4> vectors4)
+        {
+            return vectors4.Select(v => new Vector3(v.X, v.Y, v.Z));
+        }
         public static ParallelQuery<Vector4> ApplyTransform(this ParallelQuery<Vector4> vectors, Matrix4x4 transformationMatrix)
         {
             return vectors.Select(v => Vector4.Transform(v, transformationMatrix));

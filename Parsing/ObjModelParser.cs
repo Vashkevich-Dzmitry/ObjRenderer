@@ -7,7 +7,7 @@ namespace ObjRenderer.Parsing
         private const string ObjFilePath = "/Model.obj";
         private const string SpecularMapPath = "/textures/specular.png";
         private const string NormalMapPath = "/textures/normal.png";
-        private const string DiffuseMapPath = "/textures/texture.png";
+        private const string DiffuseMapPath = "/textures/diffuse.png";
 
         private string modelDirectoryPath;
         public string ModelDirectoryPath
@@ -25,9 +25,9 @@ namespace ObjRenderer.Parsing
         {
             Model model = ObjFileParser.ParseObj(modelDirectoryPath + ObjFilePath);
 
-            model.normalMap = MapFileParser.LoadMap(modelDirectoryPath + NormalMapPath);
-            model.specularMap = MapFileParser.LoadMap(modelDirectoryPath + SpecularMapPath);
-            model.diffuseMap = MapFileParser.LoadMap(modelDirectoryPath + DiffuseMapPath);
+            model.NormalMap = MapFileParser.LoadNormalMap(modelDirectoryPath + NormalMapPath);
+            model.SpecularMap = MapFileParser.LoadSpecularMap(modelDirectoryPath + SpecularMapPath);
+            model.DiffuseMap = MapFileParser.LoadDiffuseMap(modelDirectoryPath + DiffuseMapPath);
 
             return model;
         }

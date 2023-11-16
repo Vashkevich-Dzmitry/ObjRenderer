@@ -1,20 +1,20 @@
-﻿using ObjRenderer.Helpers;
+﻿using ObjRenderer.Transformations;
 using ObjRenderer.Models;
 using ObjRenderer.Parsing;
 using ObjRenderer.Rendering;
 using System.ComponentModel;
 using System.Numerics;
+using Drawing = System.Drawing;
 using System.Windows.Controls;
-using static ObjRenderer.Helpers.CoordinateTransformer;
-using static ObjRenderer.Parsing.ObjFileParser;
+using static ObjRenderer.Transformations.CoordinateTransformer;
 
 namespace ObjRenderer.ViewModels
 {
     public class ObjModelRendererViewModel : INotifyPropertyChanged
     {
-        private Vector3 DiffuseColor = new(System.Drawing.Color.Green.R, System.Drawing.Color.Green.G, System.Drawing.Color.Green.B);
-        private Vector3 AmbientColor = new(System.Drawing.Color.Green.R, System.Drawing.Color.Green.G, System.Drawing.Color.Green.B);
-        private Vector3 SpecularColor = new(System.Drawing.Color.White.R, System.Drawing.Color.White.G, System.Drawing.Color.White.B);
+        private Drawing.Color DiffuseColor = Drawing.Color.Green;
+        private Drawing.Color AmbientColor = Drawing.Color.Green;
+        private Drawing.Color SpecularColor = Drawing.Color.White;
 
 
         private const float nearPlaneDistance = 1f;
@@ -38,6 +38,7 @@ namespace ObjRenderer.ViewModels
 
         public Vector3 LightingVector { get; set; }
         public List<Vector4> VerticesToDraw { get; set; }
+        public List<Vector4> NormalsToDraw { get; set; }
         public List<Face> FacesToDraw { get; set; }
 
         public int pixelWidth;
@@ -93,6 +94,12 @@ namespace ObjRenderer.ViewModels
 
             model.Vertices = model.Vertices.AsParallel().ApplyTransform(transformationMatrix).ToList();
 
+            if (model.NormalMap == null)
+            {
+                //сделать применение матрицы поворота, если таковая будет реализована
+                //model.VertexNormals = model.VertexNormals.AsParallel().ToVector4().ApplyTransform(transformationMatrix).ToList().ToVector3().ToList();
+            }
+
             Model = model;
 
             ResetCamera();
@@ -122,10 +129,10 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(matrix)
                 .ToList();
 
-            FacesToDraw = Model.Faces.Where(f =>
-                VerticesToDraw.ElementAt(f.p0.index).W > 0 &&
+            FacesToDraw = Model.Faces.AsParallel().Where(f =>
                 VerticesToDraw.ElementAt(f.p1.index).W > 0 &&
-                VerticesToDraw.ElementAt(f.p2.index).W > 0)
+                VerticesToDraw.ElementAt(f.p2.index).W > 0 &&
+                VerticesToDraw.ElementAt(f.p3.index).W > 0)
                 .ToList();
 
             VerticesToDraw = VerticesToDraw.AsParallel()
@@ -133,7 +140,7 @@ namespace ObjRenderer.ViewModels
                 .ApplyTransform(viewportMatrix)
                 .ToList();
 
-            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model.Vertices, Model.VertexNormals, LightingVector, Camera.Eye).Source;
+            Image.Source = Drawer.DrawBitmap(FacesToDraw, VerticesToDraw, Model, LightingVector, Camera.Eye).Source;
 
             FPSCounter.Stop();
         }

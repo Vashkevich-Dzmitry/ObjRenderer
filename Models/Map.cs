@@ -1,30 +1,42 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ObjRenderer.Models
 {
-    public struct Map
+    public abstract class Map<T>
     {
         public int Width;
         public int Height;
 
-        private Vector3[] _values;
-        
+        protected T[] _values;
+
         public Map(int width, int height)
         {
             Width = width;
             Height = height;
 
-            _values = new Vector3[width * height];
+            _values = new T[width * height];
         }
 
-        public Vector3 GetValue(int x, int y)
+        public abstract T GetValue(float x, float y);
+
+        public abstract void SetValue(int x, int y, T value);
+
+        public int GetMapXCoordinate(float x)
         {
-            return _values[y * Width + x];
+            int result = (int)(x * Width);
+
+            return result;
         }
 
-        public void SetValue(int x, int y, Vector3 value)
+        public int GetMapYCoordinate(float y)
         {
-            _values[y * Width + x] = value;
+            int result = (int)(y * Height);
+
+            return result;
         }
     }
 }

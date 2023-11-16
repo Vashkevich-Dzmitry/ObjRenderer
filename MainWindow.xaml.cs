@@ -125,8 +125,11 @@ namespace ObjRenderer
 
         private void ChangeModelButtonClick(object sender, RoutedEventArgs e)
         {
-            
-            var dialog = new Microsoft.Win32.OpenFolderDialog();
+
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                RootDirectory = "C:\\Study\\Term7\\CGA\\Models"
+            };
 
             bool? result = dialog.ShowDialog();
 
@@ -138,7 +141,7 @@ namespace ObjRenderer
                 }
                 catch 
                 {
-                    MessageBox.Show("Invalid .obj file", "Model parsing error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Invalid directory", "Model parsing error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
