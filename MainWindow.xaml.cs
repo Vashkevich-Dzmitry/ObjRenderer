@@ -9,7 +9,7 @@ namespace ObjRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string _defaultModelDirectoryPath = @"../../../Data/Shovel Knight";
+        private const string _defaultModelDirectoryPath = @"C:\\Study\\Term7\\CGA\\Models\\Head";
 
         private const float _mouseButtonSmoothness = 0.005f;
         private const float _mouseWheelSmoothness = 0.005f;
@@ -128,7 +128,7 @@ namespace ObjRenderer
 
             var dialog = new Microsoft.Win32.OpenFolderDialog
             {
-                RootDirectory = "C:\\Study\\Term7\\CGA\\Models"
+                InitialDirectory = "C:\\Study\\Term7\\CGA\\Models"
             };
 
             bool? result = dialog.ShowDialog();

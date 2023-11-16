@@ -34,7 +34,7 @@ namespace ObjRenderer.Parsing
                             Z = pixel.B / 255f * 2 - 1
                         };
 
-                        map.SetValue(x, height - y - 1, value * 2 - Vector3.One);
+                        map.SetValue(x, height - y - 1, value);
                     }
                 }
 

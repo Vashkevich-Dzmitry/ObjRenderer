@@ -24,7 +24,7 @@ namespace ObjRenderer.ViewModels
 
         private const float cameraAlpha = (float)Math.PI / 2;
         private const float cameraBeta = 0.0f;
-        private const float cameraDistanceR = 150.0f;
+        private const float cameraDistanceR = 200.0f;
         private const float cameraDistanceX = 0.0f;
         private const float cameraDistanceY = 0.0f;
 

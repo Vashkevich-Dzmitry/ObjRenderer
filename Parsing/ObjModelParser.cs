@@ -5,9 +5,9 @@ namespace ObjRenderer.Parsing
     public class ObjModelParser
     {
         private const string ObjFilePath = "/Model.obj";
-        private const string SpecularMapPath = "/textures/specular.png";
-        private const string NormalMapPath = "/textures/normal.png";
-        private const string DiffuseMapPath = "/textures/diffuse.png";
+        private const string SpecularMapPath = "/specular.png";
+        private const string NormalMapPath = "/normal.png";
+        private const string DiffuseMapPath = "/diffuse.png";
 
         private string modelDirectoryPath;
         public string ModelDirectoryPath
