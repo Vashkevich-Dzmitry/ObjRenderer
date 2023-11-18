@@ -143,11 +143,11 @@ namespace ObjRenderer.Rendering
                                 Vector3 pixelNormal = normalMap != null ? normalMap.GetValue(pixelTexture.X, pixelTexture.Y) : b.X * n1 + b.Y * n2 + b.Z * n3;
 
                                 float specularCoefficient = specularMap != null ? specularMap.GetValue(pixelTexture.X, pixelTexture.Y) : 1f;
-                                float diffuseCoefficient = 1f;
-                                float ambientCoefficient = 0.2f;
+                                float diffuseCoefficient = 0.6f;
+                                float ambientCoefficient = 0.4f;
 
                                 Drawing.Color diffuseColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _diffuseColor;
-                                Drawing.Color ambientColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _ambientColor;
+                                Drawing.Color ambientColor = diffuseMap != null ? diffuseColor : _ambientColor;
                                 Drawing.Color specularColor = _specularColor;
 
                                 (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting, eye, diffuseColor, ambientColor, specularColor, diffuseCoefficient, ambientCoefficient, specularCoefficient);
@@ -164,7 +164,7 @@ namespace ObjRenderer.Rendering
 
         }
 
-        private (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye, Drawing.Color diffuseColor, Drawing.Color ambientColor, Drawing.Color specularColor, float diffuseK, float ambientK, float specularK)
+        private static (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye, Drawing.Color diffuseColor, Drawing.Color ambientColor, Drawing.Color specularColor, float diffuseK, float ambientK, float specularK)
         {
             const int GlossFactor = 2;
 
