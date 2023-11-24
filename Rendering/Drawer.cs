@@ -137,14 +137,15 @@ namespace ObjRenderer.Rendering
                         {
                             if (_zBuffer[pixelIndex] < zValue)
                             {
-                                Vector3 pixelPoint = b.X * p01 + b.Y * p02 + b.Z * p03;
-                                Vector3 pixelTexture = b.X * vt1 + b.Y * vt2 + b.Z * vt3;
+                                float invZValue = b.X * (1 / p1.Z) + b.Y * (1 / p2.Z) + b.Z * (1 / p3.Z);
+                                Vector3 pixelPoint = (b.X * (p01 / p1.Z) + b.Y * (p02 / p2.Z) + b.Z * (p03 / p3.Z)) / invZValue;
+                                Vector3 pixelTexture = (b.X * (vt1 / p1.Z) + b.Y * (vt2 / p2.Z) + b.Z * (vt3 / p3.Z)) / invZValue;
 
                                 Vector3 pixelNormal = normalMap != null ? normalMap.GetValue(pixelTexture.X, pixelTexture.Y) : b.X * n1 + b.Y * n2 + b.Z * n3;
 
-                                float specularCoefficient = specularMap != null ? specularMap.GetValue(pixelTexture.X, pixelTexture.Y) : 1f;
-                                float diffuseCoefficient = 0.6f;
-                                float ambientCoefficient = 0.4f;
+                                float specularCoefficient = specularMap != null ? specularMap.GetValue(pixelTexture.X, pixelTexture.Y ) : 1f;
+                                float diffuseCoefficient = 0.7f;
+                                float ambientCoefficient = 0.3f;
 
                                 Drawing.Color diffuseColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _diffuseColor;
                                 Drawing.Color ambientColor = diffuseMap != null ? diffuseColor : _ambientColor;
@@ -166,7 +167,7 @@ namespace ObjRenderer.Rendering
 
         private static (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye, Drawing.Color diffuseColor, Drawing.Color ambientColor, Drawing.Color specularColor, float diffuseK, float ambientK, float specularK)
         {
-            const int GlossFactor = 2;
+            const int GlossFactor = 8;
 
             byte sRed, sGreen, sBlue;
             byte dRed, dGreen, dBlue;
