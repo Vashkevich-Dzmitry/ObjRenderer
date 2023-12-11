@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace ObjRenderer.Models
+namespace ObjRenderer.Maps
 {
     public class NormalMap : Map<Vector3>
     {

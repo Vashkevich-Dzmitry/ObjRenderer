@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ObjRenderer.Models
+namespace ObjRenderer.Maps
 {
     public abstract class Map<T>
     {

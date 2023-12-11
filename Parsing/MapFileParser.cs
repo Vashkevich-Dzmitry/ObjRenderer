@@ -1,8 +1,7 @@
-﻿using ObjRenderer.Models;
-using System.IO;
+﻿using System.IO;
 using Drawing = System.Drawing;
 using System.Numerics;
-using System.Windows.Media;
+using ObjRenderer.Maps;
 
 namespace ObjRenderer.Parsing
 {
@@ -100,9 +99,39 @@ namespace ObjRenderer.Parsing
 
                         float value = pixel.R / 255f;
 
-                        map.SetValue(x, height - y - 1, value);
+                        //map.SetValue(x, height - y - 1, value);
+                        map.SetValue(x, height - y - 1, 1f);
                     }
                 }
+
+                return map;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private const string NXEdgeName = "nx.png";
+        private const string NYEdgeName = "ny.png";
+        private const string NZEdgeName = "nz.png";
+        private const string PXEdgeName = "px.png";
+        private const string PYEdgeName = "py.png";
+        private const string PZEdgeName = "pz.png";
+
+        public static CubeMap? LoadCubeMap(string path)
+        {
+            try
+            {
+                CubeMap map = new()
+                {
+                    pxEdge = LoadDiffuseMap(path + PXEdgeName)!,
+                    pyEdge = LoadDiffuseMap(path + PYEdgeName)!,
+                    pzEdge = LoadDiffuseMap(path + PZEdgeName)!,
+                    nxEdge = LoadDiffuseMap(path + NXEdgeName)!,
+                    nyEdge = LoadDiffuseMap(path + NYEdgeName)!,
+                    nzEdge = LoadDiffuseMap(path + NZEdgeName)!
+                };
 
                 return map;
             }

@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using SixLabors.ImageSharp;
+using ObjRenderer.Maps;
 
 namespace ObjRenderer.Models
 {
@@ -16,6 +16,8 @@ namespace ObjRenderer.Models
         public NormalMap? NormalMap;
         public DiffuseMap? DiffuseMap;
         public SpecularMap? SpecularMap;
+
+        public CubeMap? CubeMap;
 
         public Vector3 Center
         {

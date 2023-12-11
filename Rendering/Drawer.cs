@@ -2,6 +2,7 @@
 using Drawing = System.Drawing;
 using System.Numerics;
 using static System.Math;
+using ObjRenderer.Maps;
 
 namespace ObjRenderer.Rendering
 {

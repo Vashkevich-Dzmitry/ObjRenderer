@@ -1,6 +1,6 @@
 ﻿using Drawing = System.Drawing;
 
-namespace ObjRenderer.Models
+namespace ObjRenderer.Maps
 {
     public class DiffuseMap : Map<Drawing.Color>
     {

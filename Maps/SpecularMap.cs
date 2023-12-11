@@ -1,4 +1,4 @@
-﻿namespace ObjRenderer.Models
+﻿namespace ObjRenderer.Maps
 {
     public class SpecularMap : Map<float>
     {
