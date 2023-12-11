@@ -8,8 +8,17 @@ namespace ObjRenderer.Maps
 
         public override Drawing.Color GetValue(float x, float y)
         {
-            return _values[GetMapYCoordinate(y) * Width + GetMapXCoordinate(x)];
+            try
+            {
+                return _values[GetMapYCoordinate(y) * Width + GetMapXCoordinate(x)];
+            }
+            catch (Exception e)
+            {
+                Console.Write(e.StackTrace);
+                return Drawing.Color.Pink;
+            }
         }
+
 
         public override void SetValue(int x, int y, Drawing.Color value)
         {

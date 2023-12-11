@@ -71,7 +71,7 @@ namespace ObjRenderer.Rendering
 
                 if (PerpDot(p1p3, p1p2) > 0)
                 {
-                    Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, vt1, vt2, vt3, lightingVector, eyeVector, model.NormalMap, model.DiffuseMap, model.SpecularMap);
+                    Rasterize(_bitmap, transformedPoint1, transformedPoint2, transformedPoint3, p1, p2, p3, normal1, normal2, normal3, vt1, vt2, vt3, lightingVector, eyeVector, model.NormalMap, model.CubeMap);
                 }
             });
 
@@ -81,7 +81,7 @@ namespace ObjRenderer.Rendering
             return _bitmap;
         }
 
-        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p01, Vector3 p02, Vector3 p03, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 vt1, Vector3 vt2, Vector3 vt3, Vector3 lighting, Vector3 eye, NormalMap? normalMap, DiffuseMap? diffuseMap, SpecularMap? specularMap)
+        private void Rasterize(Bitmap bitmap, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p01, Vector3 p02, Vector3 p03, Vector3 n1, Vector3 n2, Vector3 n3, Vector3 vt1, Vector3 vt2, Vector3 vt3, Vector3 lighting, Vector3 eye, NormalMap? normalMap, CubeMap? cubeMap)
         {
             int xMin = (int)Max(0, Ceiling(Min(Min(p1.X, p2.X), p3.X)));
             int yMin = (int)Max(0, Ceiling(Min(Min(p1.Y, p2.Y), p3.Y)));
@@ -144,15 +144,8 @@ namespace ObjRenderer.Rendering
 
                                 Vector3 pixelNormal = normalMap != null ? normalMap.GetValue(pixelTexture.X, pixelTexture.Y) : b.X * n1 + b.Y * n2 + b.Z * n3;
 
-                                float specularCoefficient = specularMap != null ? specularMap.GetValue(pixelTexture.X, pixelTexture.Y ) : 1f;
-                                float diffuseCoefficient = 0.7f;
-                                float ambientCoefficient = 0.3f;
 
-                                Drawing.Color diffuseColor = diffuseMap != null ? diffuseMap.GetValue(pixelTexture.X, pixelTexture.Y) : _diffuseColor;
-                                Drawing.Color ambientColor = diffuseMap != null ? diffuseColor : _ambientColor;
-                                Drawing.Color specularColor = _specularColor;
-
-                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, lighting, eye, diffuseColor, ambientColor, specularColor, diffuseCoefficient, ambientCoefficient, specularCoefficient);
+                                (byte red, byte green, byte blue) = ComputePixelColor(pixelPoint, pixelNormal, eye, cubeMap);
 
                                 _zBuffer[pixelIndex] = zValue;
 
@@ -166,41 +159,11 @@ namespace ObjRenderer.Rendering
 
         }
 
-        private static (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 lighting, Vector3 eye, Drawing.Color diffuseColor, Drawing.Color ambientColor, Drawing.Color specularColor, float diffuseK, float ambientK, float specularK)
-        {
-            const int GlossFactor = 8;
+        private static (byte red, byte green, byte blue) ComputePixelColor(Vector3 pixelPoint, Vector3 pixelNormal, Vector3 eye, CubeMap cubeMap )
+        { 
+            Drawing.Color color = cubeMap.GetRedlectedEnvironmentColor(pixelPoint, pixelNormal, eye);
 
-            byte sRed, sGreen, sBlue;
-            byte dRed, dGreen, dBlue;
-            byte aRed, aGreen, aBlue;
-
-            Vector3 eyeToPoint = Vector3.Normalize(pixelPoint - eye);
-            Vector3 pointNormal = Vector3.Normalize(pixelNormal);
-
-            float diffuseIntensity = Max(Vector3.Dot(pointNormal, lighting), 0.0f);
-
-            Vector3 reflectedLighting = Vector3.Reflect(lighting, pointNormal);
-            float dot = Vector3.Dot(reflectedLighting, eyeToPoint);
-            float k = Max(dot, 0.0f);
-            float specularIntensity = MyPow(k, GlossFactor);
-
-            sRed = (byte)(specularColor.R * specularIntensity);
-            sGreen = (byte)(specularColor.G * specularIntensity);
-            sBlue = (byte)(specularColor.B * specularIntensity);
-
-            dRed = (byte)(diffuseColor.R * diffuseIntensity);
-            dGreen = (byte)(diffuseColor.G * diffuseIntensity);
-            dBlue = (byte)(diffuseColor.B * diffuseIntensity);
-
-            aRed = ambientColor.R;
-            aGreen = ambientColor.G;
-            aBlue = ambientColor.B;
-
-            byte red = (byte)Min(sRed * specularK + dRed * diffuseK + aRed * ambientK, 255);
-            byte green = (byte)Min(sGreen * specularK + dGreen * diffuseK + aGreen * ambientK, 255);
-            byte blue = (byte)Min(sBlue * specularK + dBlue * diffuseK + aBlue * ambientK, 255);
-
-            return (red, green, blue);
+            return (color.R, color.G, color.B);
         }
 
         private static float PerpDot(Vector2 a, Vector2 b)

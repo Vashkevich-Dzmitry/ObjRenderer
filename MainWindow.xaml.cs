@@ -9,7 +9,7 @@ namespace ObjRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string _defaultModelDirectoryPath = @"C:\\Study\\Term7\\CGA\\Models\\Head";
+        private const string _defaultModelDirectoryPath = @"C:\\Study\\Term7\\CGA\\Models\\Chess Cube";
 
         private const float _mouseButtonSmoothness = 0.005f;
         private const float _mouseWheelSmoothness = 0.005f;

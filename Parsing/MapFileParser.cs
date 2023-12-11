@@ -99,8 +99,7 @@ namespace ObjRenderer.Parsing
 
                         float value = pixel.R / 255f;
 
-                        //map.SetValue(x, height - y - 1, value);
-                        map.SetValue(x, height - y - 1, 1f);
+                        map.SetValue(x, height - y - 1, value);
                     }
                 }
 
@@ -123,15 +122,13 @@ namespace ObjRenderer.Parsing
         {
             try
             {
-                CubeMap map = new()
-                {
-                    pxEdge = LoadDiffuseMap(path + PXEdgeName)!,
-                    pyEdge = LoadDiffuseMap(path + PYEdgeName)!,
-                    pzEdge = LoadDiffuseMap(path + PZEdgeName)!,
-                    nxEdge = LoadDiffuseMap(path + NXEdgeName)!,
-                    nyEdge = LoadDiffuseMap(path + NYEdgeName)!,
-                    nzEdge = LoadDiffuseMap(path + NZEdgeName)!
-                };
+                CubeMap map = new(LoadDiffuseMap(path + PXEdgeName)!,
+                    LoadDiffuseMap(path + PYEdgeName)!,
+                    LoadDiffuseMap(path + PZEdgeName)!,
+                    LoadDiffuseMap(path + NXEdgeName)!,
+                    LoadDiffuseMap(path + NYEdgeName)!,
+                    LoadDiffuseMap(path + NZEdgeName)!
+                );
 
                 return map;
             }

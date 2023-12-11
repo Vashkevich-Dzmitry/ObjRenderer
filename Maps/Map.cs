@@ -34,7 +34,7 @@ namespace ObjRenderer.Maps
 
         public int GetMapYCoordinate(float y)
         {
-            int result = (int)(y * Height);
+            int result = Math.Min(Height - 1, (int)(y * Height));
 
             return result;
         }

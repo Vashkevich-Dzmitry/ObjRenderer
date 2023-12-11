@@ -9,7 +9,7 @@ namespace ObjRenderer.Parsing
         private const string NormalMapPath = "/normal.png";
         private const string DiffuseMapPath = "/diffuse.png";
 
-        private const string CubeMapPath = "/../Cubemap/";
+        private const string CubeMapPath = "/../Cubemap/2048/";
 
         private string modelDirectoryPath;
         public string ModelDirectoryPath
@@ -31,7 +31,7 @@ namespace ObjRenderer.Parsing
             model.SpecularMap = MapFileParser.LoadSpecularMap(modelDirectoryPath + SpecularMapPath);
             model.DiffuseMap = MapFileParser.LoadDiffuseMap(modelDirectoryPath + DiffuseMapPath);
 
-            model.CubeMap = MapFileParser.LoadCubeMap(CubeMapPath);
+            model.CubeMap = MapFileParser.LoadCubeMap(modelDirectoryPath + CubeMapPath);
 
             return model;
         }
